@@ -233,4 +233,4 @@ class ImageGenerator:
             _image_clean, self.image_counts_per_atom, normalize_counts=False,
             seed=seed, white_noise_counts=self.image_counts_white_noise
         )
-        return _image_sample
+        return ArrayData(_image_sample)
