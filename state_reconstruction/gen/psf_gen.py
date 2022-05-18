@@ -23,6 +23,7 @@ def get_psf_gaussian_width(
     w = 1 / 2 * 0.84 * wavelength / 2 / numerical_aperture
     return w / px_size
 
+
 def get_psf_gaussian(wx=5, wy=None, dx=0, dy=0, tilt=0, size=25):
     if wy is None:
         wy = wx
@@ -68,7 +69,7 @@ def get_psf_airy(wx=5, wy=None, dx=0, dy=0, size=25):
     x, y = x - psf.get_center(0) - dx, y - psf.get_center(1) - dy
     u = np.sqrt((x / wx)**2 + (y / wy)**2)
     psf.data = np.ones(size, dtype=float)
-    np.true_divide(2 * scipy.special.j1(u), u, where=(u!=0), out=psf.data)
+    np.true_divide(2 * scipy.special.j1(u), u, where=(u != 0), out=psf.data)
     psf.data = psf.data**2
     psf.data /= np.sum(psf.data)
     return psf

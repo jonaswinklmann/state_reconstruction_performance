@@ -96,11 +96,14 @@ def find_labels(mask, image):
 
 
 def find_label_centers_gaussian(
-    image, label_coms, im_size, rel_center_tol=1, rel_width_tol=2
+    image, label_coms, im_size,
+    max_ellipticity=0.2, rel_center_tol=1, rel_width_tol=2
 ):
     """
     im_size : `(int, int)`
         Image size used for alignment.
+    max_ellipticity : `float`
+        Maximally allowed ellipticity.
     rel_center_tol : `float`
         Acceptable positional difference between fitted center and
         center of mass (relative to `im_size`).
@@ -125,6 +128,7 @@ def find_label_centers_gaussian(
                 _fit.psuccess
                 and np.all(np.abs(_center - label_com) <= center_tol)
                 and np.all(np.abs(_width) <= width_tol)
+                and _fit.ellipticity <= max_ellipticity
             ):
                 label_centers.append(_center)
             else:
@@ -179,7 +183,8 @@ class SupersamplePsfEstimator:
         self, guess_psf_integrated=None, psf_supersample=5,
         filter_inner_thr=1/np.e, filter_outer_thr=1/np.e**4,
         onsite_split_cond_width=5, neighbor_split_cond_width=3,
-        label_center_rel_im_size=1, label_center_tol=(1, 2)
+        label_center_rel_im_size=1,
+        label_center_max_ellipticity=0.2, label_center_tol=(1, 2)
     ):
         # Point spread function configuration
         self.guess_psf_integrated = guess_psf_integrated
@@ -191,6 +196,7 @@ class SupersamplePsfEstimator:
         self.neighbor_split_cond_width = neighbor_split_cond_width
         # Labelling configuration
         self.label_center_rel_im_size = label_center_rel_im_size
+        self.label_center_max_ellipticity = label_center_max_ellipticity
         self.label_center_tol = label_center_tol
         # Derived quantities
         self._is_set_up = False
@@ -201,7 +207,7 @@ class SupersamplePsfEstimator:
             self.guess_psf_integrated, const_p0=dict(tilt=0)
         )
         self._label_fit_im_size = np.round(
-            2 * np.array([_fit.wu, _fit.wv])
+            3 * np.array([_fit.wu, _fit.wv])
         ).astype(int)
         self._is_set_up = True
 
@@ -229,6 +235,7 @@ class SupersamplePsfEstimator:
         labeld = find_labels(isolated_mask, image)
         label_centers = find_label_centers_gaussian(
             image, labeld["label_com"], self._label_fit_im_size,
+            max_ellipticity=self.label_center_max_ellipticity,
             rel_center_tol=self.label_center_tol[0],
             rel_width_tol=self.label_center_tol[1]
         )
