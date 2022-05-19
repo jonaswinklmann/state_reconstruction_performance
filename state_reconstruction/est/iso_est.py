@@ -177,7 +177,7 @@ def find_label_regions_subpixel(
 ###############################################################################
 
 
-class SupersamplePsfEstimator:
+class IsolatedLocator:
 
     def __init__(
         self, guess_psf_integrated=None, psf_supersample=5,
@@ -207,11 +207,11 @@ class SupersamplePsfEstimator:
             self.guess_psf_integrated, const_p0=dict(tilt=0)
         )
         self._label_fit_im_size = np.round(
-            3 * np.array([_fit.wu, _fit.wv])
+            np.array([_fit.wu, _fit.wv]) * 2 * self.label_center_rel_im_size
         ).astype(int)
         self._is_set_up = True
 
-    def get_label_regions(self, image, normalize=False):
+    def get_label_centers(self, image, remove_nan=True):
         if not self._is_set_up:
             self.setup()
         # Filter images
@@ -239,6 +239,18 @@ class SupersamplePsfEstimator:
             rel_center_tol=self.label_center_tol[0],
             rel_width_tol=self.label_center_tol[1]
         )
+        if remove_nan:
+            label_centers = label_centers[~np.isnan(label_centers[..., 0])]
+        return label_centers
+
+
+class SupersamplePsfEstimator(IsolatedLocator):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def get_label_regions(self, image, normalize=False, remove_nan=True):
+        label_centers = self.get_label_centers(image, remove_nan=remove_nan)
         label_regions = find_label_regions_subpixel(
             image, label_centers,
             region_size=self.guess_psf_integrated.shape,
