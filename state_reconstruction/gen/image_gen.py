@@ -2,7 +2,7 @@ import numpy as np
 
 from libics.core.data.arrays import ArrayData
 
-from .psf_gen import get_integrated_psf
+from .psf_gen import IntegratedPsfGenerator
 
 
 ###############################################################################
@@ -99,18 +99,24 @@ def get_brightness_sample(
     return brightness
 
 
-def get_local_psfs(X, Y, psf, integration_size=5):
+def get_local_psfs(
+    X, Y, integrated_psf_generator=None, psf=None, integration_size=5
+):
+    if integrated_psf_generator is None:
+        integrated_psf_generator = IntegratedPsfGenerator(
+            psf=psf, psf_supersample=integration_size
+        )
+    psfgen = integrated_psf_generator
     X_int, Y_int = np.round(X).astype(int), np.round(Y).astype(int)
     X_res, Y_res = X - X_int, Y - Y_int
-    dx = np.round(X_res * integration_size).astype(int)
-    dy = np.round(Y_res * integration_size).astype(int)
-    psf_shape = np.array(psf.shape) // integration_size
+    dx = np.round(X_res * psfgen.psf_supersample).astype(int)
+    dy = np.round(Y_res * psfgen.psf_supersample).astype(int)
+    psf_shape = np.array(psfgen.psf.shape) // psfgen.psf_supersample
     X_min, Y_min = X_int - psf_shape[0] // 2, Y_int - psf_shape[1] // 2
     X_max, Y_max = X_min + psf_shape[0], Y_min + psf_shape[1]
     integrated_psfs = [
-        get_integrated_psf(
-            psf, dx=dx[i], dy=dy[i], integration_size=integration_size
-        ) for i in range(len(X))
+        psfgen.generate_integrated_psf(dx=dx[i], dy=dy[i])
+        for i in range(len(X))
     ]
     return {
         "psf": integrated_psfs, "X_int": X_int, "Y_int": Y_int,

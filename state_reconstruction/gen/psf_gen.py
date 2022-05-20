@@ -148,6 +148,10 @@ class IntegratedPsfGenerator:
         self._psf_supersample = val
         self.psf_integrated_cache_built = False
 
+    @property
+    def psf_shape(self):
+        return np.array(self.psf.shape) // self.psf_supersample
+
     def setup_cache(self, print_progress=False):
         _ss = self.psf_supersample
         _hss = _ss // 2
@@ -155,8 +159,8 @@ class IntegratedPsfGenerator:
             _ss, _ss, self.psf.shape[0] // _ss, self.psf.shape[1] // _ss
         ), np.nan, dtype=float)
         _iter = misc.get_combinations([
-            np.arange(_ss - _hss, 2 * _ss - _hss),
-            np.arange(_ss - _hss, 2 * _ss - _hss)
+            np.arange(-_hss, _ss - _hss),
+            np.arange(-_hss, _ss - _hss)
         ])
         if print_progress:
             _iter = misc.iter_progress(_iter)
@@ -168,8 +172,8 @@ class IntegratedPsfGenerator:
 
     def generate_integrated_psf(self, dx=0, dy=0):
         if self.psf_integrated_cache_built:
-            return self._psf_integrated[dx, dy]
+            return self._psf_integrated[dx, dy].copy()
         else:
-            get_integrated_psf(
+            return get_integrated_psf(
                 self.psf, dx=dx, dy=dy, integration_size=self.psf_supersample
             )
