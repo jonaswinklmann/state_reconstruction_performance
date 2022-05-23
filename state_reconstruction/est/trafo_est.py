@@ -324,6 +324,36 @@ class TrafoEstimator:
 
 
 ###############################################################################
+# Transformation phase estimation
+###############################################################################
+
+
+def get_trafo_phase_from_points(x, y, ref_trafo_site_to_image):
+    """
+    Parameters
+    ----------
+    x, y : `Array[1, float]`
+        Atom centers in image coordinates.
+    ref_trafo_site_to_image : `AffineTrafo2d`
+        Zero-phase reference transformation between sites and image.
+
+    Returns
+    -------
+    phase : `np.ndarray(1, float)`
+        Mean phase along [x, y] sites in interval `[-0.5, 0.5]`.
+    phase_err : `np.ndarray(1, float)`
+        Standard error of the mean of phase.
+    """
+    image_coords = ref_trafo_site_to_image.coord_to_origin(
+        np.moveaxis([np.ravel(x), np.ravel(y)], 0, -1)
+    )
+    phases = (image_coords + 0.5) % 1 - 0.5
+    phase = np.mean(-phases, axis=0)
+    phase_err = np.std(phases, axis=0) / np.sqrt(phases.shape[1])
+    return phase, phase_err
+
+
+###############################################################################
 # Helper
 ###############################################################################
 
