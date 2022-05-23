@@ -1,8 +1,11 @@
 import numpy as np
 
-from libics.core.data.arrays import ArrayData
+from libics.env.logging import get_logger
+from libics.core.data.arrays import ArrayData, get_coordinate_meshgrid
 
 from .psf_gen import IntegratedPsfGenerator
+
+LOGGER = get_logger("srec.gen.image_gen")
 
 
 ###############################################################################
@@ -53,18 +56,26 @@ def get_sites_mi(
         outside_size = np.array(outside_size)
         np.random.seed(seed)
         X_iso, Y_iso = [], []
-        _outside_half_size = outside_size / 2
-        while len(X_iso) < outside_count:
-            _x, _y = _point = np.random.randint(
-                -_outside_half_size, _outside_half_size + 1
+        if np.any(outside_size <= size):
+            LOGGER.warn(
+                "get_sites_mi: `outside_size` should be larger than `size`"
             )
+        else:
+            _outside_half_size = np.round(outside_size / 2).astype(int)
+            _coords = np.array(get_coordinate_meshgrid(*[
+                np.arange(-_ohs, _ohs + 1)
+                for _ohs in _outside_half_size
+            ]))
+            _coords = np.moveaxis(_coords, 0, -1).reshape((-1, 2))
             if _shape_is_round:
-                _accept = np.linalg.norm(_point) > 1
+                _accept = np.linalg.norm(_coords / (size / 2), axis=-1) > 1
             else:
-                _accept = np.all(np.abs(_point) > size)
-            if _accept:
-                X_iso.append(_x + center[0])
-                Y_iso.append(_y + center[1])
+                _accept = np.all(np.abs(_coords) > (size / 2), axis=-1)
+            _coords = _coords[_accept]
+            _choice_idx = np.random.choice(
+                np.arange(len(_coords)), size=outside_count, replace=False
+            )
+            X_iso, Y_iso = np.moveaxis(_coords[_choice_idx] + center, -1, 0)
         X, Y = np.concatenate([X, X_iso]), np.concatenate([Y, Y_iso])
     return X, Y
 
@@ -138,7 +149,9 @@ def get_image_clean(
     if local_psfs is None:
         if X is None or Y is None or psf is None:
             raise ValueError("invalid parameters")
-        lpsfs = get_local_psfs(X, Y, psf, integration_size=integration_size)
+        lpsfs = get_local_psfs(
+            X, Y, psf=psf, integration_size=integration_size
+        )
     else:
         lpsfs = local_psfs
     integrated_psfs = lpsfs["psf"]
