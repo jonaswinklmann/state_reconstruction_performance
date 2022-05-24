@@ -6,9 +6,9 @@ from libics.tools.trafo.linear import AffineTrafo2d
 ###############################################################################
 
 
-def get_trafo_site_to_fluo(
+def get_trafo_site_to_image(
     magnification=None, angle=None, trafo_site_to_image=None,
-    phase_ref_image=(255, 255), phase_ref_site=(84, 84), phase=np.zeros(2)
+    phase_ref_image=(0, 0), phase_ref_site=(169, 84), phase=np.zeros(2)
 ):
     """
     Gets the default transformation.
@@ -48,7 +48,7 @@ def get_trafo_site_to_fluo(
 
 
 def get_phase_from_trafo_site_to_image(
-    trafo_site_to_image, phase_ref_image=(255, 255)
+    trafo_site_to_image, phase_ref_image=(0, 0)
 ):
     """
     Gets the lattice phase and ref. integer site in `librbl` convention.

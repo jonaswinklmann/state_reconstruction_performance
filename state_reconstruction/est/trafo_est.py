@@ -328,7 +328,10 @@ class TrafoEstimator:
 ###############################################################################
 
 
-def get_trafo_phase_from_points(x, y, ref_trafo_site_to_image):
+def get_trafo_phase_from_points(
+    x, y, ref_trafo_site_to_image,
+    phase_offset_trial_thr=0.2, phase_std_trial_thr=0.2
+):
     """
     Parameters
     ----------
@@ -347,10 +350,32 @@ def get_trafo_phase_from_points(x, y, ref_trafo_site_to_image):
     image_coords = ref_trafo_site_to_image.coord_to_origin(
         np.moveaxis([np.ravel(x), np.ravel(y)], 0, -1)
     )
-    phases = (image_coords + 0.5) % 1 - 0.5
-    phase = np.mean(-phases, axis=0)
-    phase_err = np.std(phases, axis=0) / np.sqrt(phases.shape[1])
-    return phase, phase_err
+    # Try centering phase = 0
+    phase_offset = 0.5
+    phases = (image_coords + phase_offset) % 1 - phase_offset
+    phase = (np.mean(phases, axis=0) + 0.5) % 1 - 0.5
+    phase_std = np.std(phases, axis=0)
+    # Try centering phase = 0.5
+    try_phase_shift = (
+        (np.abs(phase) > np.abs(phase_offset_trial_thr))
+        | (phase_std > phase_std_trial_thr)
+    )
+    if np.any(try_phase_shift):
+        _phase_offset = (0.5 * (try_phase_shift + 1)) % 1
+        _phases = (
+            (image_coords + _phase_offset) % 1 - _phase_offset
+        )
+        _phase = (np.mean(_phases, axis=0) + 0.5) % 1 - 0.5
+        _phase_std = np.std(_phases, axis=0)
+        if np.all(_phase_std <= phase_std):
+            phase, phase_std = _phase, _phase_std
+    # Use optimized phase
+    phase_offset = 0.5 - phase
+    phases = (image_coords + phase_offset) % 1 - phase_offset
+    phase = (np.mean(phases, axis=0) + 0.5) % 1 - 0.5
+    phase_std = np.std(phases, axis=0)
+    phase_err = phase_std / np.sqrt(phases.shape[1])
+    return -phase, phase_err
 
 
 ###############################################################################

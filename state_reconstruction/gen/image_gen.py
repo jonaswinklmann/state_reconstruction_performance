@@ -4,6 +4,7 @@ from libics.env.logging import get_logger
 from libics.core.data.arrays import ArrayData, get_coordinate_meshgrid
 
 from .psf_gen import IntegratedPsfGenerator
+from .trafo_gen import get_trafo_site_to_image
 
 LOGGER = get_logger("srec.gen.image_gen")
 
@@ -66,9 +67,13 @@ def get_sites_mi(
                 np.arange(-_ohs, _ohs + 1)
                 for _ohs in _outside_half_size
             ]))
-            _coords = np.moveaxis(_coords, 0, -1).reshape((-1, 2))
+            _coords = np.reshape(_coords, (-1, 2))
             if _shape_is_round:
-                _accept = np.linalg.norm(_coords / (size / 2), axis=-1) > 1
+                _accept = (
+                    (np.linalg.norm(_coords / (size / 2), axis=-1) > 1)
+                    & (np.linalg.norm(_coords / _outside_half_size, axis=-1)
+                       <= 1)
+                )
             else:
                 _accept = np.all(np.abs(_coords) > (size / 2), axis=-1)
             _coords = _coords[_accept]
@@ -78,6 +83,31 @@ def get_sites_mi(
             X_iso, Y_iso = np.moveaxis(_coords[_choice_idx] + center, -1, 0)
         X, Y = np.concatenate([X, X_iso]), np.concatenate([Y, Y_iso])
     return X, Y
+
+
+def apply_coords(
+    X, Y, vals=0, fill=0,
+    rect=None, center=None, size=(170, 170), offset=(0, 0)
+):
+    if rect is not None:
+        rect = np.array(rect)
+        offset = rect[..., 0]
+        shape = rect[..., 1] - rect[..., 0]
+    else:
+        if center is None:
+            offset = np.array(offset)
+        else:
+            offset = np.array(center) - np.array(size) // 2
+        shape = np.array(size)
+    ad = ArrayData(np.full(shape, fill, dtype=float))
+    for i, _o in enumerate(offset):
+        ad.set_dim(i, offset=_o, step=1)
+    if np.isscalar(vals):
+        vals = np.full(len(X), vals)
+    XX, YY = np.round([X, Y]).astype(int) - offset[..., np.newaxis]
+    for i, (x, y) in enumerate(zip(XX, YY)):
+        ad.data[x, y] = vals[i]
+    return ad
 
 
 ###############################################################################
@@ -218,7 +248,11 @@ class ImageGenerator:
         self.psf = psf
         self.psf_supersample = psf_supersample
 
-    def generate_image(self, seed=None, sites_phase=None):
+    def generate_image(
+        self, seed=None, sites_phase=None,
+        phase_ref_image=(0, 0), phase_ref_site=(169, 84),
+        ret_vals=None
+    ):
         # Generate filled sites
         _sites = np.array(get_sites_mi(
             center=self.atoms_center, size=self.atoms_size,
@@ -230,10 +264,11 @@ class ImageGenerator:
         # Generate random lattice phase
         if sites_phase is None:
             sites_phase = np.random.random(size=2)
-        if np.allclose(sites_phase, 0):
-            _trafo = self.trafo_site_to_image
-        else:
-            _trafo = self.trafo_site_to_image.shift_target_axes(sites_phase)
+        _trafo = get_trafo_site_to_image(
+            trafo_site_to_image=self.trafo_site_to_image,
+            phase_ref_image=phase_ref_image, phase_ref_site=phase_ref_site,
+            phase=sites_phase
+        )
         # Transform into camera space
         _positions = np.transpose(_trafo.coord_to_target(np.transpose(_sites)))
         # Randomize fluorescence per atom
@@ -252,4 +287,31 @@ class ImageGenerator:
             _image_clean, self.image_counts_per_atom, normalize_counts=False,
             seed=seed, white_noise_counts=self.image_counts_white_noise
         )
-        return ArrayData(_image_sample)
+        if ret_vals is None:
+            return ArrayData(_image_sample)
+        else:
+            ret = {"image_sample": ArrayData(_image_sample)}
+            if "coord_sites" in ret_vals:
+                ret["coord_sites"] = _sites
+            if "coord_image" in ret_vals:
+                ret["coord_image"] = _positions
+            if "occ_2d_sites" in ret_vals:
+                ret["occ_2d_sites"] = apply_coords(
+                    *_sites, vals=1, size=np.array(self.atoms_center)*2
+                )
+            if "occ_2d_image" in ret_vals:
+                ret["occ_2d_image"] = apply_coords(
+                    *_positions, vals=1, size=self.image_size
+                )
+            if "brightness" in ret_vals:
+                ret["brightness"] = _brightness
+            if "brightness_2d_sites" in ret_vals:
+                ret["brightness_2d_sites"] = apply_coords(
+                    *_sites, vals=_brightness,
+                    size=np.array(self.atoms_center)*2
+                )
+            if "image_clean" in ret_vals:
+                ret["image_clean"] = _image_clean
+            if "trafo" in ret_vals:
+                ret["trafo"] = _trafo
+            return ret

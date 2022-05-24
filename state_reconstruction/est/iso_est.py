@@ -239,7 +239,7 @@ class IsolatedLocator:
             rel_center_tol=self.label_center_tol[0],
             rel_width_tol=self.label_center_tol[1]
         )
-        if remove_nan:
+        if remove_nan and len(label_centers) > 0:
             label_centers = label_centers[~np.isnan(label_centers[..., 0])]
         return label_centers
 

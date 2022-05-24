@@ -14,7 +14,7 @@ Includes the following functionalities:
 Clone this repository:
 
 ```
-git clone https://www.github.com/david-wei/state_reconstruction
+git clone https://www.github.com/david-wei/state_reconstruction.git
 ```
 
 
