@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>state_reconstruction.est &mdash; libics 1.0a documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="state_reconstruction.gen" href="gen.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> libics
+          </a>
+              <div class="version">
+                1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="gen.html">state_reconstruction.gen</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">state_reconstruction.est</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-state_reconstruction.est.iso_est">iso_est</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-state_reconstruction.est.state_est">state_est</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-state_reconstruction.est.trafo_est">trafo_est</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">libics</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>state_reconstruction.est</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_dynamic/est.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-state_reconstruction.est">
+<span id="state-reconstruction-est"></span><h1>state_reconstruction.est<a class="headerlink" href="#module-state_reconstruction.est" title="Permalink to this headline"></a></h1>
+<p>Estimator subpackage.</p>
+<p>Contains functions to estimate lattice transformations, point spread functions
+and emission states from fluorescence images.</p>
+<section id="module-state_reconstruction.est.iso_est">
+<span id="iso-est"></span><h2>iso_est<a class="headerlink" href="#module-state_reconstruction.est.iso_est" title="Permalink to this headline"></a></h2>
+<p>Isolated atom estimator.</p>
+<p>Filters an image to find isolated atoms.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.IsolatedLocator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.iso_est.</span></span><span class="sig-name descname"><span class="pre">IsolatedLocator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf_integrated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_inner_thr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.36787944117144233</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_outer_thr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.018315638888734182</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">onsite_split_cond_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighbor_split_cond_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_center_rel_im_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_center_max_ellipticity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_center_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">2)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.IsolatedLocator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class for locating isolated atoms.</p>
+<p>Due to overlapping PSFs of neighboring atoms, the transformation phase
+might not be detected directly. This class allows to find the image
+coordinates of isolated atoms, whose positions may be used to, e.g.,
+extract the lattice phase.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>psf_integrated</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Binned PSF array.</p>
+</dd>
+<dt><strong>filter_inner_thr, filter_outer_thr</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Filter kernel parameters.</p>
+</dd>
+<dt><strong>onsite_split_cond_width, neighbor_split_cond_width</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Histogram width condition for determining mask.
+Parameters given for the onsite-present filter
+and the neighbor-present filter.
+See <a class="reference internal" href="#state_reconstruction.est.iso_est.interpret_filter_hist" title="state_reconstruction.est.iso_est.interpret_filter_hist"><code class="xref py py-func docutils literal notranslate"><span class="pre">interpret_filter_hist()</span></code></a> for details.</p>
+</dd>
+<dt><strong>label_center_rel_im_size</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Label center subregion size relative to the
+Gaussian <cite>1/e</cite> radius.</p>
+</dd>
+<dt><strong>label_center_max_ellipticity</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Maximum ellipticity for subregion to be designated as isolated atom.</p>
+</dd>
+<dt><strong>label_center_tol</strong><span class="classifier"><cite>(float, float)</cite></span></dt><dd><p>Maximum <cite>(center, width)</cite> fit tolerance relative to the subregion size
+to be designated as isolated atom.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Standard use case given a binned PSF and an image:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">psf_integr</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(21, 21)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(512, 512)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">isoloc</span> <span class="o">=</span> <span class="n">IsolatedLocator</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">psf_integrated</span><span class="o">=</span><span class="n">psf_integr</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">isoloc</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">isoloc</span><span class="o">.</span><span class="n">get_label_centers</span><span class="p">(</span><span class="n">image</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(7, 2)</span>
+</pre></div>
+</div>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.est.iso_est.IsolatedLocator.get_label_centers" title="state_reconstruction.est.iso_est.IsolatedLocator.get_label_centers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_label_centers</span></code></a>(image[, remove_nan])</p></td>
+<td><p>Gets the centers of isolated atoms from an image.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.est.iso_est.IsolatedLocator.setup" title="state_reconstruction.est.iso_est.IsolatedLocator.setup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup</span></code></a>()</p></td>
+<td><p>Fits a Gaussian to the PSF to determine the label subregion size.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.IsolatedLocator.get_label_centers">
+<span class="sig-name descname"><span class="pre">get_label_centers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.IsolatedLocator.get_label_centers" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the centers of isolated atoms from an image.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Image to be analyzed.</p>
+</dd>
+<dt><strong>remove_nan</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to remove invalid center values.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>label_centers</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Fitted Gaussian center of labelled areas. Labels for which
+the fit failed have a label center of <cite>(np.nan, np.nan)</cite>.
+Dimensions: <cite>[n_labels, ndim]</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.IsolatedLocator.setup">
+<span class="sig-name descname"><span class="pre">setup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.IsolatedLocator.setup" title="Permalink to this definition"></a></dt>
+<dd><p>Fits a Gaussian to the PSF to determine the label subregion size.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.SupersamplePsfEstimator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.iso_est.</span></span><span class="sig-name descname"><span class="pre">SupersamplePsfEstimator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf_supersample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.SupersamplePsfEstimator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#state_reconstruction.est.iso_est.IsolatedLocator" title="state_reconstruction.est.iso_est.IsolatedLocator"><code class="xref py py-class docutils literal notranslate"><span class="pre">state_reconstruction.est.iso_est.IsolatedLocator</span></code></a></p>
+<p>Class for estimating a subpixel PSF.</p>
+<p>Using multiple sparse images, the fluorescence image of isolated atoms
+is used to estimate the PSF by supersampling and subpixel alignment.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>psf_supersample</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Supersampling size.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Standard use case given a binned initial-guess PSF and multiple images:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">guess_psf_integr</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(21, 21)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">images</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(10, 512, 512)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">psfest</span> <span class="o">=</span> <span class="n">SupersamplePsfEstimator</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">psf_integrated</span><span class="o">=</span><span class="n">guess_psf_integr</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">psf_supersample</span><span class="o">=</span><span class="mi">5</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">psfest</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">psfest</span><span class="o">.</span><span class="n">get_psf</span><span class="p">(</span><span class="o">*</span><span class="n">images</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(105, 105)</span>
+</pre></div>
+</div>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_label_centers</span></code>(image[, remove_nan])</p></td>
+<td><p>Gets the centers of isolated atoms from an image.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_label_regions" title="state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_label_regions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_label_regions</span></code></a>(image[, normalize, remove_nan])</p></td>
+<td><p>Gets a list of supersampled and subpixel-aligned image subregions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_psf" title="state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_psf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_psf</span></code></a>(*images[, print_progress])</p></td>
+<td><p>Gets the estimated subpixel PSF from sparse images.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup</span></code>()</p></td>
+<td><p>Fits a Gaussian to the PSF to determine the label subregion size.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_label_regions">
+<span class="sig-name descname"><span class="pre">get_label_regions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_label_regions" title="Permalink to this definition"></a></dt>
+<dd><p>Gets a list of supersampled and subpixel-aligned image subregions.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Original image.</p>
+</dd>
+<dt><strong>normalize</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to normalize each returned image subregion.</p>
+</dd>
+<dt><strong>remove_nan</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to remove all invalid subregions.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>label_regions</strong><span class="classifier"><cite>np.ndarray(3, float)</cite></span></dt><dd><p>Subpixel-aligned supersampled image subregions.
+Dimensions: <cite>[n_labels, x, y]</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_psf">
+<span class="sig-name descname"><span class="pre">get_psf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">images</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_psf" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the estimated subpixel PSF from sparse images.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>*images</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Fluorescence images of well-separated atoms.</p>
+</dd>
+<dt><strong>print_progress</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to print a progress bar.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>label_region</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Estimated subpixel PSF.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.apply_filter">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.iso_est.</span></span><span class="sig-name descname"><span class="pre">apply_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.apply_filter" title="Permalink to this definition"></a></dt>
+<dd><p>Performs convolutional filter.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Raw image.</p>
+</dd>
+<dt><strong>filter</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Filter kernel.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Filtered image.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.find_label_centers_gaussian">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.iso_est.</span></span><span class="sig-name descname"><span class="pre">find_label_centers_gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_coms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">im_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_ellipticity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_center_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_width_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.find_label_centers_gaussian" title="Permalink to this definition"></a></dt>
+<dd><p>Fits a Gaussian to each labelled area.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Image.</p>
+</dd>
+<dt><strong>label_coms</strong><span class="classifier"><cite>Array[1, float]</cite></span></dt><dd><p>Center of mass of labelled areas.</p>
+</dd>
+<dt><strong>im_size</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Image size used for alignment.</p>
+</dd>
+<dt><strong>max_ellipticity</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Maximally allowed ellipticity.</p>
+</dd>
+<dt><strong>rel_center_tol</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Acceptable positional difference between fitted center and
+center of mass (relative to <cite>im_size</cite>).</p>
+</dd>
+<dt><strong>rel_width_tol</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Acceptable fitted width relative to <cite>im_size</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>label_centers</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Fitted Gaussian center of labelled areas. Labels for which
+the fit failed have a label center of <cite>(np.nan, np.nan)</cite>.
+Dimensions: <cite>[n_labels, ndim]</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.find_label_regions_subpixel">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.iso_est.</span></span><span class="sig-name descname"><span class="pre">find_label_regions_subpixel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">region_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supersample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.find_label_regions_subpixel" title="Permalink to this definition"></a></dt>
+<dd><p>Get subpixel-aligned supersampled subregions.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Original image.</p>
+</dd>
+<dt><strong>label_centers</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>(Fractional) label centers. Dimensions: <cite>[n_labels, ndim]</cite>.</p>
+</dd>
+<dt><strong>region_size</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Subregion size in original pixels.</p>
+</dd>
+<dt><strong>supersample</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Supersampling.</p>
+</dd>
+<dt><strong>normalize</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to normalize each subregion image.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>label_regions</strong><span class="classifier"><cite>np.ndarray(3, float)</cite></span></dt><dd><p>Subpixel-aligned supersampled image subregions.
+Dimensions: <cite>[n_labels, x, y]</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.find_labels">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.iso_est.</span></span><span class="sig-name descname"><span class="pre">find_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.find_labels" title="Permalink to this definition"></a></dt>
+<dd><p>Labels and evaluates a masked image.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>mask</strong><span class="classifier"><cite>Array[2, bool]</cite></span></dt><dd><p>Mask array. <cite>True</cite> represents labelled space.</p>
+</dd>
+<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Original image.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>ret</strong><span class="classifier"><cite>dict(str-&gt;Any)</cite></span></dt><dd><p>Returns a dictionary containing the following items:</p>
+</dd>
+<dt><strong>labels</strong><span class="classifier"><cite>np.ndarray(2, int)</cite></span></dt><dd><p>Label array. Unlabelled areas have value <cite>0</cite>.
+Labelled unconnected areas have incrementing integers
+at their respective positions.</p>
+</dd>
+<dt><strong>label_size</strong><span class="classifier"><cite>np.ndarray(1, int)</cite></span></dt><dd><p>Number of points of each label.</p>
+</dd>
+<dt><strong>label_com</strong><span class="classifier"><cite>np.ndarray(1, float)</cite></span></dt><dd><p>Center of mass of each label.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.get_neighbor_filter">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.iso_est.</span></span><span class="sig-name descname"><span class="pre">get_neighbor_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf_integrated</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_thr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.36787944117144233</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outer_thr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.018315638888734182</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.get_neighbor_filter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.get_onsite_filter">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.iso_est.</span></span><span class="sig-name descname"><span class="pre">get_onsite_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf_integrated</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_thr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.36787944117144233</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.get_onsite_filter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.interpret_filter_hist">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.iso_est.</span></span><span class="sig-name descname"><span class="pre">interpret_filter_hist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_filtered</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_cond_width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_cond_center</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_DEBUG</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.interpret_filter_hist" title="Permalink to this definition"></a></dt>
+<dd><p>Gets a boolean mask by analyzing filtered data.</p>
+<p>Generates a histogram and fits two peaks.
+The masking threshold is determined from either the distance
+between the peaks or the width of the first peak.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>image_filtered</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Filtered image.</p>
+</dd>
+<dt><strong>bins</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Number of histogram bins</p>
+</dd>
+<dt><strong>split_cond_width</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Thresholding on the width of the first peak.
+Values above <cite>split_cond_width</cite> relative to the width
+of the first peak are set to <cite>True</cite>.</p>
+</dd>
+<dt><strong>split_cond_center</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Thresholding on the position between the two peak centers.
+Values above <cite>split_cond_center</cite> relative to the distance
+between the peaks are set to <cite>True</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>mask</strong><span class="classifier"><cite>np.ndarray(2, bool)</cite></span></dt><dd><p>Mask array.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-state_reconstruction.est.state_est">
+<span id="state-est"></span><h2>state_est<a class="headerlink" href="#module-state_reconstruction.est.state_est" title="Permalink to this headline"></a></h2>
+<p>State estimator.</p>
+<p>Projects an image into site space and assigns a emission state.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.ReconstructionResult">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.state_est.</span></span><span class="sig-name descname"><span class="pre">ReconstructionResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.state_est.ReconstructionResult" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>State reconstruction results container.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><strong>trafo</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Affine transformation between sites and image coordinates.</p>
+</dd>
+<dt><strong>emissions</strong><span class="classifier"><cite>ArrayData(2, float)</cite></span></dt><dd><p>Image projected onto sites.</p>
+</dd>
+<dt><strong>state</strong><span class="classifier"><cite>ArrayData(2, int)</cite></span></dt><dd><p>Estimated state of each site.</p>
+</dd>
+<dt><strong>label_center</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Positions of isolated atoms in image coordinates.
+Dimensions: <cite>[n_atoms, ndim]</cite>.</p>
+</dd>
+<dt><strong>histogram</strong><span class="classifier"><cite>ArrayData(1, float)</cite></span></dt><dd><p>Histogram of projected values.</p>
+</dd>
+<dt><strong>hist_center</strong><span class="classifier"><cite>[float, float, float]</cite></span></dt><dd><p>Projected center value for the states.</p>
+</dd>
+<dt><strong>hist_threshold</strong><span class="classifier"><cite>[float, float]</cite></span></dt><dd><p>State discrimination threshold of projected values.</p>
+</dd>
+<dt><strong>hist_error_num</strong><span class="classifier"><cite>[float, float]</cite></span></dt><dd><p>False negative/positive number at thresholds.</p>
+</dd>
+<dt><strong>hist_emission_num</strong><span class="classifier"><cite>[int, int, int]</cite></span></dt><dd><p>Number of sites associated to each state.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.ReconstructionResult.LOGGER">
+<span class="sig-name descname"><span class="pre">LOGGER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;Logger</span> <span class="pre">srec.ReconstructionResult</span> <span class="pre">(WARNING)&gt;</span></em><a class="headerlink" href="#state_reconstruction.est.state_est.ReconstructionResult.LOGGER" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.StateEstimator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.state_est.</span></span><span class="sig-name descname"><span class="pre">StateEstimator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">projector_generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isolated_locator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trafo_site_to_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sites_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(170,</span> <span class="pre">170)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.state_est.StateEstimator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class for state reconstruction from a fluorescence image.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>projector_generator</strong><span class="classifier"><cite>ProjectorGenerator</cite></span></dt><dd><p>Projector generator object.</p>
+</dd>
+<dt><strong>isolated_locator</strong><span class="classifier"><cite>IsolatedLocator</cite></span></dt><dd><p>Isolated atoms locator object,
+used to obtain the transformation phase.</p>
+</dd>
+<dt><strong>trafo_site_to_image</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Transformation between sites and image coordinates.
+Its phase is optimized for each image individually.</p>
+</dd>
+<dt><strong>sites_shape</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Shape of 2D array representing lattice sites.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Standard use case given a projector generator, isolated atoms locator
+and an image to be reconstructed:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">prjgen</span><span class="p">)</span>
+<span class="go">state_reconstruction.gen.proj_gen.ProjectorGenerator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">isoloc</span><span class="p">)</span>
+<span class="go">state_reconstruction.est.iso_est.IsolatedLocator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(512, 512)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stest</span> <span class="o">=</span> <span class="n">StateEstimator</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">projector_generator</span><span class="o">=</span><span class="n">prjgen</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">isolated_locator</span><span class="o">=</span><span class="n">isoloc</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">sites_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">170</span><span class="p">,</span> <span class="mi">170</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stest</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">recres</span> <span class="o">=</span> <span class="n">stest</span><span class="o">.</span><span class="n">reconstruct</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">recres</span><span class="p">)</span>
+<span class="go">state_reconstruction.est.state_est.ReconstructionResult</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">recres</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(170, 170)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>psf_shape</strong></dt><dd></dd>
+<dt><strong>psf_supersample</strong></dt><dd></dd>
+<dt><strong>trafo_site_to_image</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.est.state_est.StateEstimator.reconstruct" title="state_reconstruction.est.state_est.StateEstimator.reconstruct"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reconstruct</span></code></a>(image[, new_trafo])</p></td>
+<td><p>Reconstructs the state of each lattice site from an image.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.est.state_est.StateEstimator.setup" title="state_reconstruction.est.state_est.StateEstimator.setup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup</span></code></a>([print_progress])</p></td>
+<td><p>Checks that all attributes are set and initializes them.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.StateEstimator.LOGGER">
+<span class="sig-name descname"><span class="pre">LOGGER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;Logger</span> <span class="pre">srec.StateEstimator</span> <span class="pre">(WARNING)&gt;</span></em><a class="headerlink" href="#state_reconstruction.est.state_est.StateEstimator.LOGGER" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.StateEstimator.psf_shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">psf_shape</span></span><a class="headerlink" href="#state_reconstruction.est.state_est.StateEstimator.psf_shape" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.StateEstimator.psf_supersample">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">psf_supersample</span></span><a class="headerlink" href="#state_reconstruction.est.state_est.StateEstimator.psf_supersample" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.StateEstimator.reconstruct">
+<span class="sig-name descname"><span class="pre">reconstruct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_trafo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.state_est.StateEstimator.reconstruct" title="Permalink to this definition"></a></dt>
+<dd><p>Reconstructs the state of each lattice site from an image.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Fluorescence image to be reconstructed.</p>
+</dd>
+<dt><strong>new_trafo</strong><span class="classifier"><cite>None</cite> or <cite>AffineTrafo2d</cite></span></dt><dd><p>If <cite>AffineTrafo2d</cite>, uses <cite>new_trafo</cite> to project the state.
+If <cite>None</cite>, a <cite>new_trafo</cite> is created by optimizing the
+transformation phase.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>res</strong><span class="classifier"><cite>ReconstructionResult</cite></span></dt><dd><p>Reconstruction result.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.StateEstimator.setup">
+<span class="sig-name descname"><span class="pre">setup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">print_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.state_est.StateEstimator.setup" title="Permalink to this definition"></a></dt>
+<dd><p>Checks that all attributes are set and initializes them.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.StateEstimator.trafo_site_to_image">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">trafo_site_to_image</span></span><a class="headerlink" href="#state_reconstruction.est.state_est.StateEstimator.trafo_site_to_image" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.apply_projectors">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.state_est.</span></span><span class="sig-name descname"><span class="pre">apply_projectors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">local_images</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projector_generator</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.state_est.apply_projectors" title="Permalink to this definition"></a></dt>
+<dd><p>Applies subpixel-shifted projectors to subregion images.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>local_images</strong><span class="classifier"><cite>np.ndarray(3, float)</cite></span></dt><dd><p>Subregion images. Dimension: <cite>[n_subregions, {shape}]</cite>.</p>
+</dd>
+<dt><strong>projector_generator</strong><span class="classifier"><cite>ProjectorGenerator</cite></span></dt><dd><p>Projector generator object.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>emissions</strong><span class="classifier"><cite>np.ndarray(1, float)</cite></span></dt><dd><p>Projected results. Dimensions: <cite>[n_subregions]</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.get_emission_histogram">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.state_est.</span></span><span class="sig-name descname"><span class="pre">get_emission_histogram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">emissions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_peak_rel_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bin_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.state_est.get_emission_histogram" title="Permalink to this definition"></a></dt>
+<dd><p>Gets state discrimination thresholds from projected images.</p>
+<p>Uses a histogram to find two or three peaks. The thresholds are set
+by setting equal false negativer/positive rates.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>emissions</strong><span class="classifier"><cite>Array[1, float]</cite></span></dt><dd><p>Projected image subregions.</p>
+</dd>
+<dt><strong>min_peak_rel_dist</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>If the spacing between the first two peaks is smaller than
+the product of background peak width and <cite>min_peak_rel_dist</cite>,
+an error is raised.</p>
+</dd>
+<dt><strong>bin_range</strong><span class="classifier"><cite>None</cite> or <cite>(float, float)</cite></span></dt><dd><p>Bin range used to obtain the histogram.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>ret</strong><span class="classifier"><cite>dict(str-&gt;Any)</cite></span></dt><dd><p>Returns a dictionary containing the following items:</p>
+</dd>
+<dt><strong>histogram</strong><span class="classifier"><cite>ArrayData(1, float)</cite></span></dt><dd><p>Projected image histogram.</p>
+</dd>
+<dt><strong>center</strong><span class="classifier"><cite>[float, float, float]</cite></span></dt><dd><p>Peak centers.</p>
+</dd>
+<dt><strong>threshold</strong><span class="classifier"><cite>[float, float]</cite></span></dt><dd><p>State thresholds.</p>
+</dd>
+<dt><strong>error_num</strong><span class="classifier"><cite>[float, float]</cite></span></dt><dd><p>False positive/negative counts at first/second threshold.</p>
+</dd>
+<dt><strong>emission_num</strong><span class="classifier"><cite>[float, float, float]</cite></span></dt><dd><p>Number of sites mapped to the different states.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.get_local_images">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.state_est.</span></span><span class="sig-name descname"><span class="pre">get_local_images</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf_supersample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.state_est.get_local_images" title="Permalink to this definition"></a></dt>
+<dd><p>Extracts image subregions and subpixel shifts.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>X, Y</strong><span class="classifier"><cite>Array[1, float]</cite></span></dt><dd><p>(Fractional) center positions in image coordinates.</p>
+</dd>
+<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Full-sized image.</p>
+</dd>
+<dt><strong>shape</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Shape of subregion images.</p>
+</dd>
+<dt><strong>psf_supersample</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Supersampling size
+(used to convert fractional positions to subpixel shifts).</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>ret</strong><span class="classifier"><cite>dict(str-&gt;Any)</cite></span></dt><dd><p>Returns a dictionary containing the following items:</p>
+</dd>
+<dt><strong>image</strong><span class="classifier"><cite>np.ndarray(3, float)</cite></span></dt><dd><p>Subregion images. Dimension: <cite>[n_subregions, {shape}]</cite>.</p>
+</dd>
+<dt><strong>X_int, Y_int</strong><span class="classifier"><cite>np.ndarray(1, int)</cite></span></dt><dd><p>Rounded PSF center coordinates.</p>
+</dd>
+<dt><strong>X_min, X_max, Y_min, Y_max</strong><span class="classifier"><cite>np.ndarray(1, int)</cite></span></dt><dd><p>Rounded PSF rectangle corners.</p>
+</dd>
+<dt><strong>dx, dy</strong><span class="classifier"><cite>np.ndarray(1, int)</cite></span></dt><dd><p>Subpixel shifts.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.get_state_estimate">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.state_est.</span></span><span class="sig-name descname"><span class="pre">get_state_estimate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">emissions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thresholds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.state_est.get_state_estimate" title="Permalink to this definition"></a></dt>
+<dd><p>Applies state thresholds to a projected image.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>emissions</strong><span class="classifier"><cite>Array[float]</cite></span></dt><dd><p>Projected image.</p>
+</dd>
+<dt><strong>thresholds</strong><span class="classifier"><cite>Iter[float]</cite></span></dt><dd><p>State thresholds.
+States will be labelled according to the <cite>thresholds</cite> index.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>state</strong><span class="classifier"><cite>Array[int]</cite></span></dt><dd><p>Projected image mapped to states.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-state_reconstruction.est.trafo_est">
+<span id="trafo-est"></span><h2>trafo_est<a class="headerlink" href="#module-state_reconstruction.est.trafo_est" title="Permalink to this headline"></a></h2>
+<p>Affine transformation estimator</p>
+<p>Estimates the affine transformation parameters between lattice sites
+and fluorescence image coordinates.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="state_reconstruction.est.trafo_est.FitPeriodicGaussian1d">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.trafo_est.</span></span><span class="sig-name descname"><span class="pre">FitPeriodicGaussian1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">const_p0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.trafo_est.FitPeriodicGaussian1d" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">libics.tools.math.models.ModelBase</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">p0</span></code></dt><dd><p>All <code class="xref py py-attr docutils literal notranslate"><span class="pre">p0</span></code></p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">p0_for_fit</span></code></dt><dd><p>Fitted <code class="xref py py-attr docutils literal notranslate"><span class="pre">p0</span></code></p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">pall</span></code></dt><dd><p>dict(name-&gt;index) for all parameters</p>
+</dd>
+<dt><strong>pcov</strong></dt><dd></dd>
+<dt><strong>pcov_for_fit</strong></dt><dd></dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">pfit</span></code></dt><dd><p>dict(name-&gt;index) for fitted parameters</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">popt</span></code></dt><dd><p>All <code class="xref py py-attr docutils literal notranslate"><span class="pre">popt</span></code> (non-fitted ones use <code class="xref py py-attr docutils literal notranslate"><span class="pre">p0</span></code>)</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">popt_for_fit</span></code></dt><dd><p>Fitted <code class="xref py py-attr docutils literal notranslate"><span class="pre">popt</span></code></p>
+</dd>
+<dt><strong>pstd</strong></dt><dd></dd>
+<dt><strong>pstd_for_fit</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>(var, *args, **kwargs)</p></td>
+<td><p>Calls the model function with current parameters.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_chi2</span></code>(*data)</p></td>
+<td><p>Gets the chi squared statistic.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_chi2_red</span></code>(*data)</p></td>
+<td><p>Gets the reduced chi squared statistic.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_chi2_significance</span></code>(*data)</p></td>
+<td><p>Gets the chi squared confindence quantile for the fit.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.est.trafo_est.FitPeriodicGaussian1d.find_p0" title="state_reconstruction.est.trafo_est.FitPeriodicGaussian1d.find_p0"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_p0</span></code></a>(*data)</p></td>
+<td><p>Routine for initial fit parameter finding.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_popt</span></code>(*data, **kwargs)</p></td>
+<td><p>Fits the model function to the given data.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_p0</span></code>(**p0)</p></td>
+<td><p>Sets initial parameters.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_pfit</span></code>(*opt[, const])</p></td>
+<td><p>Set which parameters to fit.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_hypothesis_chi2</span></code>(*data[, p_value])</p></td>
+<td><p>Tests the whether the fit is valid.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 57%" />
+<col style="width: 43%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>get_p0</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_popt</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>get_pstd</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>p0_is_set</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="state_reconstruction.est.trafo_est.FitPeriodicGaussian1d.P_ALL">
+<span class="sig-name descname"><span class="pre">P_ALL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['a',</span> <span class="pre">'x0',</span> <span class="pre">'wx',</span> <span class="pre">'dx',</span> <span class="pre">'c']</span></em><a class="headerlink" href="#state_reconstruction.est.trafo_est.FitPeriodicGaussian1d.P_ALL" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="state_reconstruction.est.trafo_est.FitPeriodicGaussian1d.P_DEFAULT">
+<span class="sig-name descname"><span class="pre">P_DEFAULT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[1,</span> <span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">1,</span> <span class="pre">0]</span></em><a class="headerlink" href="#state_reconstruction.est.trafo_est.FitPeriodicGaussian1d.P_DEFAULT" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.trafo_est.FitPeriodicGaussian1d.find_p0">
+<span class="sig-name descname"><span class="pre">find_p0</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.trafo_est.FitPeriodicGaussian1d.find_p0" title="Permalink to this definition"></a></dt>
+<dd><p>Routine for initial fit parameter finding.</p>
+<p>Should return whether this succeeded.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="state_reconstruction.est.trafo_est.TrafoEstimator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.trafo_est.</span></span><span class="sig-name descname"><span class="pre">TrafoEstimator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">isolated_locator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_isolated_num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">guess_trafo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05235987755982989</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins_per_site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_fidelity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_rel_prominence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_base_prominence_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.trafo_est.TrafoEstimator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class for estimating lattice angles and spacings.</p>
+<p>Uses low-density atomic fluorescence images to optimize the
+affine transformation between sites and image coordinates.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>isolated_locator</strong><span class="classifier"><cite>IsolatedLocator</cite></span></dt><dd><p>Object for locating isolated atoms.</p>
+</dd>
+<dt><strong>min_isolated_num</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Minimum detected isolated atoms.</p>
+</dd>
+<dt><strong>guess_trafo</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Initially guessed transformation used as a starting point
+for optimization.</p>
+</dd>
+<dt><strong>angle_num</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Number of angular steps used for optimization.</p>
+</dd>
+<dt><strong>angle_range</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Angular range in radians (rad) used for optimization.</p>
+</dd>
+<dt><strong>bins_per_site, peak_rel_prominence, peak_base_prominence_ratio</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Transformation fidelity estimation parameters.
+See <a class="reference internal" href="#state_reconstruction.est.trafo_est.get_trafo_angle_fidelity" title="state_reconstruction.est.trafo_est.get_trafo_angle_fidelity"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_trafo_angle_fidelity()</span></code></a> for details.</p>
+</dd>
+<dt><strong>min_fidelity</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Angular optimization parameter.
+See <a class="reference internal" href="#state_reconstruction.est.trafo_est.get_trafo_from_sites_direct" title="state_reconstruction.est.trafo_est.get_trafo_from_sites_direct"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_trafo_from_sites_direct()</span></code></a> for details.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Standard use case given a guessed transformation, an isolated
+atoms locator object and low-density images:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">guess_trafo</span><span class="p">)</span>
+<span class="go">libics.tools.trafo.linear.AffineTrafo2d</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">isoloc</span><span class="p">)</span>
+<span class="go">srec.est.iso_est.IsolatedLocator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">images</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(10, 512, 512)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trfest</span> <span class="o">=</span> <span class="n">TrafoEstimator</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">isolated_locator</span><span class="o">=</span><span class="n">isoloc</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">guess_trafo</span><span class="o">=</span><span class="n">guess_trafo</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">trfest</span><span class="o">.</span><span class="n">find_trafo</span><span class="p">(</span><span class="o">*</span><span class="n">images</span><span class="p">))</span>
+<span class="go">libics.tools.trafo.linear.AffineTrafo2d</span>
+</pre></div>
+</div>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.est.trafo_est.TrafoEstimator.check_setup" title="state_reconstruction.est.trafo_est.TrafoEstimator.check_setup"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_setup</span></code></a>()</p></td>
+<td><p>Checks whether all attributes are set up.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.est.trafo_est.TrafoEstimator.find_trafo" title="state_reconstruction.est.trafo_est.TrafoEstimator.find_trafo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_trafo</span></code></a>(*images[, print_progress])</p></td>
+<td><p>Gets the optimal transformation object from a multiple images.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.est.trafo_est.TrafoEstimator.get_optimized_trafo" title="state_reconstruction.est.trafo_est.TrafoEstimator.get_optimized_trafo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_optimized_trafo</span></code></a>(image[, print_progress])</p></td>
+<td><p>Gets the optimal transformation object from a single image.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="state_reconstruction.est.trafo_est.TrafoEstimator.LOGGER">
+<span class="sig-name descname"><span class="pre">LOGGER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;Logger</span> <span class="pre">srec.TrafoEstimator</span> <span class="pre">(WARNING)&gt;</span></em><a class="headerlink" href="#state_reconstruction.est.trafo_est.TrafoEstimator.LOGGER" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.trafo_est.TrafoEstimator.check_setup">
+<span class="sig-name descname"><span class="pre">check_setup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.trafo_est.TrafoEstimator.check_setup" title="Permalink to this definition"></a></dt>
+<dd><p>Checks whether all attributes are set up.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.trafo_est.TrafoEstimator.find_trafo">
+<span class="sig-name descname"><span class="pre">find_trafo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">images</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.trafo_est.TrafoEstimator.find_trafo" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the optimal transformation object from a multiple images.</p>
+<p>Averages the transformation parameters obtained from each image.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>*images</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Low-density image.</p>
+</dd>
+<dt><strong>print_progress</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to print a progress bar.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>trafo</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Optimized transformation between sites and image coordinates.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.trafo_est.TrafoEstimator.get_optimized_trafo">
+<span class="sig-name descname"><span class="pre">get_optimized_trafo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.trafo_est.TrafoEstimator.get_optimized_trafo" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the optimal transformation object from a single image.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Low-density image.</p>
+</dd>
+<dt><strong>print_progress</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to print a progress bar.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>opt_trafo</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Optimized transformation between sites and image coordinates.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.trafo_est.get_trafo_angle_fidelity">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.trafo_est.</span></span><span class="sig-name descname"><span class="pre">get_trafo_angle_fidelity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">guess_trafo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">1)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins_per_site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_rel_prominence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_base_prominence_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_spacing_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.trafo_est.get_trafo_angle_fidelity" title="Permalink to this definition"></a></dt>
+<dd><p>Calculates the projected transformation fidelity.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>x, y</strong><span class="classifier"><cite>Array[1, float]</cite></span></dt><dd><p>Lattice sites in image coordinates.</p>
+</dd>
+<dt><strong>guess_trafo</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Affine transformation from sites to image coordinates to be checked.</p>
+</dd>
+<dt><strong>ax</strong><span class="classifier"><cite>int</cite> or <cite>Iter[int]</cite></span></dt><dd><p>Transformation axes along which to perform the fidelity analysis.
+The return values are vectorial if <cite>ax</cite> is vectorial and vice versa.</p>
+</dd>
+<dt><strong>bins_per_site</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Number of histogram bins per unit distance.</p>
+</dd>
+<dt><strong>peak_rel_prominence, peak_base_prominence_ratio</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Peak finding parameters.
+See <code class="xref py py-func docutils literal notranslate"><span class="pre">libics.tools.math.signal.find_peaks_1d()</span></code> for details.</p>
+</dd>
+<dt><strong>rel_spacing_tol</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Maximum allowed relative spacing deviation between the fitted
+spacing and the guessed spacing (extracted from <cite>guess_trafo</cite>).</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>ret</strong><span class="classifier"><cite>dict(str-&gt;Any)</cite> or <cite>dict(str-&gt;Iter[Any])</cite></span></dt><dd><p>Returns a dictionary containing the following items.
+The return is vectorial if <cite>ax</cite> is vectorial.</p>
+</dd>
+<dt><strong>projected_distance</strong><span class="classifier"><cite>ArrayData(1, float)</cite></span></dt><dd><p>Histogram of positional differences.</p>
+</dd>
+<dt><strong>spacing</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Fitted spacing relative to the spacing extracted from <cite>guess_trafo</cite>.</p>
+</dd>
+<dt><strong>width</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Fitted peak width relative to the spacing extracted from <cite>guess_trafo</cite>.</p>
+</dd>
+<dt><strong>fidelity</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Fidelity of transformation, defined as <cite>1 - (width / spacing)²</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Summary of the algorithm:</p>
+<ul class="simple">
+<li><p>First, the image coordinates are transformed to site space.</p></li>
+<li><p>Then the mutual differences are calculated (i.e. N² values).
+Due to translational invariance, the mutual differences should have
+regular peaks spaced by the lattice spacing.</p></li>
+<li><p>Due to the many available values, a well-resolved histogram can be
+generated, revealing this peak structure.</p></li>
+<li><p>Using a peak finder, the position and width of the peaks are determined.</p></li>
+<li><p>If the peaks are sufficiently regular, a periodic Gaussian is fitted.</p></li>
+<li><p>We use <cite>1 - (width / spacing)²</cite> as a fidelity measure.</p></li>
+<li><p>Performing this analysis along the x (y) axis yields the
+fidelity of the transformation angle along the y (x) vectors.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.trafo_est.get_trafo_from_sites_direct">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.trafo_est.</span></span><span class="sig-name descname"><span class="pre">get_trafo_from_sites_direct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">guess_trafo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05235987755982989</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins_per_site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_rel_prominence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_base_prominence_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_fidelity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.trafo_est.get_trafo_from_sites_direct" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the optimum transformation from given lattice sites.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>x, y</strong><span class="classifier"><cite>Array[1, float]</cite></span></dt><dd><p>Lattice sites in image coordinates.</p>
+</dd>
+<dt><strong>guess_trafo</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Initial guess for the affine transformation between sites and
+image coordinates.</p>
+</dd>
+<dt><strong>angle_range</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Angle range in which to optimize in radians (rad).</p>
+</dd>
+<dt><strong>angle_num</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Number of steps in <cite>angle_range</cite>.</p>
+</dd>
+<dt><strong>bins_per_site, peak_rel_prominence, peak_base_prominence_ratio</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Transformation fidelity estimation parameters.
+See <a class="reference internal" href="#state_reconstruction.est.trafo_est.get_trafo_angle_fidelity" title="state_reconstruction.est.trafo_est.get_trafo_angle_fidelity"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_trafo_angle_fidelity()</span></code></a> for details.</p>
+</dd>
+<dt><strong>min_fidelity</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Minimum transformation fidelity to be considered valid.</p>
+</dd>
+<dt><strong>print_progress</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to print a progress bar.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>ret</strong><span class="classifier"><cite>dict(str-&gt;Any)</cite></span></dt><dd><p>Returns a dictionary containing the following items:</p>
+</dd>
+<dt><strong>trafo</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Optimal transformation.</p>
+</dd>
+<dt><strong>fidelity</strong><span class="classifier"><cite>[ArrayData(1, float), ArrayData(1, float)]</cite></span></dt><dd><p>Fidelity v. angle for the <cite>[x, y]</cite> axes.</p>
+</dd>
+<dt><strong>rel_spacing</strong><span class="classifier"><cite>[ArrayData(1, float), ArrayData(1, float)]</cite></span></dt><dd><p>Spacing relative to <cite>guess_trafo</cite> v. angle for the <cite>[x, y]</cite> axes.</p>
+</dd>
+<dt><strong>rel_width</strong><span class="classifier"><cite>[ArrayData(1, float), ArrayData(1, float)]</cite></span></dt><dd><p>Width relative to <cite>guess_trafo</cite> v. angle for the <cite>[x, y]</cite> axes.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.trafo_est.get_trafo_from_sites_fit">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.trafo_est.</span></span><span class="sig-name descname"><span class="pre">get_trafo_from_sites_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">guess_trafo</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.trafo_est.get_trafo_from_sites_fit" title="Permalink to this definition"></a></dt>
+<dd><p>Direct fit of transformation.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.trafo_est.get_trafo_phase_from_points">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.trafo_est.</span></span><span class="sig-name descname"><span class="pre">get_trafo_phase_from_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref_trafo_site_to_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_offset_trial_thr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_std_trial_thr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.trafo_est.get_trafo_phase_from_points" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the transformation phase from image coordinates.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>x, y</strong><span class="classifier"><cite>Array[1, float]</cite></span></dt><dd><p>Atom centers in image coordinates.</p>
+</dd>
+<dt><strong>ref_trafo_site_to_image</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Zero-phase reference transformation between sites and image.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>phase</strong><span class="classifier"><cite>np.ndarray(1, float)</cite></span></dt><dd><p>Mean phase along [x, y] sites in interval <cite>[-0.5, 0.5]</cite>.</p>
+</dd>
+<dt><strong>phase_err</strong><span class="classifier"><cite>np.ndarray(1, float)</cite></span></dt><dd><p>Standard error of the mean of phase.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="gen.html" class="btn btn-neutral float-left" title="state_reconstruction.gen" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2021, David Wei.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -8,6 +8,7 @@ Includes the following functionalities:
 * Extract lattice vectors
 * Reconstruct single-site occupation
 
+The full documentation can be found at https://david-wei.github.io/state_reconstruction.
 
 ## Installation
 

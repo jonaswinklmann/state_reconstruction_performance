@@ -7,7 +7,7 @@ def readme():
 
 
 setup(name='state_reconstruction',
-      version='0.1dev',
+      version='0.1a',
       description='State reconstruction library',
       long_description=readme(),
       classifiers=[

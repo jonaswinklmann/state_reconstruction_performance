@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>state_reconstruction.gen &mdash; libics 1.0a documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="state_reconstruction.est" href="est.html" />
+    <link rel="prev" title="Documentation of state_reconstruction" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> libics
+          </a>
+              <div class="version">
+                1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">state_reconstruction.gen</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-state_reconstruction.gen.image_gen">image_gen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-state_reconstruction.gen.proj_gen">proj_gen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-state_reconstruction.gen.psf_gen">psf_gen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-state_reconstruction.gen.trafo_gen">trafo_gen</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="est.html">state_reconstruction.est</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">libics</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>state_reconstruction.gen</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_dynamic/gen.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-state_reconstruction.gen">
+<span id="state-reconstruction-gen"></span><h1>state_reconstruction.gen<a class="headerlink" href="#module-state_reconstruction.gen" title="Permalink to this headline"></a></h1>
+<p>Generator subpackage.</p>
+<p>Contains functions to generate lattice transformations, point spread functions,
+projectors and (noisy) fluorescence images.</p>
+<section id="module-state_reconstruction.gen.image_gen">
+<span id="image-gen"></span><h2>image_gen<a class="headerlink" href="#module-state_reconstruction.gen.image_gen" title="Permalink to this headline"></a></h2>
+<p>Image generator.</p>
+<p>Simulates fluorescence images of atomic arrays.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="state_reconstruction.gen.image_gen.ImageGenerator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.image_gen.</span></span><span class="sig-name descname"><span class="pre">ImageGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(512,</span> <span class="pre">512)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_counts_per_atom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">11900</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_counts_white_noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">70</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sites_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(170,</span> <span class="pre">170)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_center</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(85,</span> <span class="pre">85)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(30,</span> <span class="pre">30)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_filling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'round'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_outside_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_outside_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_fluo_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_fluo_add_distr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trafo_site_to_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf_supersample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.image_gen.ImageGenerator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class for simulating fluorescence images of atomic arrays.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>image_size</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Image shape.</p>
+</dd>
+<dt><strong>image_counts_per_atom</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Number of counts per atom.</p>
+</dd>
+<dt><strong>image_counts_white_noise</strong><span class="classifier"><cite>int</cite> or <cite>None</cite></span></dt><dd><p>Standard deviation of Gaussian white background noise.
+If <cite>None</cite>, does not apply background noise.</p>
+</dd>
+<dt><strong>sites_size</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Shape of lattice sites.</p>
+</dd>
+<dt><strong>atoms_center</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Center site of atomic array.</p>
+</dd>
+<dt><strong>atoms_size</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Full size of atomic array.</p>
+</dd>
+<dt><strong>atoms_filling</strong><span class="classifier"><cite>float</cite> or <cite>None</cite></span></dt><dd><p>Array filling fraction. If <cite>None</cite>, assumes unity filling.</p>
+</dd>
+<dt><strong>atoms_shape</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>Spatial shape of array. Options: <cite>“round”, “square”</cite>.</p>
+</dd>
+<dt><strong>atoms_outside_count</strong><span class="classifier"><cite>int</cite> or <cite>None</cite></span></dt><dd><p>Number of atoms outside the array <cite>size</cite>.
+If <cite>None</cite>, uses zero.</p>
+</dd>
+<dt><strong>atoms_outside_size</strong><span class="classifier"><cite>int</cite> or <cite>(int, int)</cite></span></dt><dd><p>Size within which outside atoms are located.</p>
+</dd>
+<dt><strong>atoms_fluo_std</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Standard deviation of brightness of atoms.</p>
+</dd>
+<dt><strong>atoms_fluo_add_distr</strong><span class="classifier"><cite>Iter[[float or callable, float, float]]</cite></span></dt><dd><p><cite>[probability to add this distribution, mean, std]</cite>.
+See <a class="reference internal" href="#state_reconstruction.gen.image_gen.get_brightness_sample" title="state_reconstruction.gen.image_gen.get_brightness_sample"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_brightness_sample()</span></code></a> for details.</p>
+</dd>
+<dt><strong>trafo_site_to_image</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Affine transformation object between
+lattice sites and image coordinates.</p>
+</dd>
+<dt><strong>psf</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Fully resolved PSF.</p>
+</dd>
+<dt><strong>psf_supersample</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Binning of PSF.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Standard use case given a fully resolved PSF and a transformation object:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">psf</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(105, 105)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">trafo</span><span class="p">)</span>
+<span class="go">libics.tools.trafo.linear.AffineTrafo2d</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">imggen</span> <span class="o">=</span> <span class="n">ImageGenerator</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">image_size</span><span class="o">=</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">512</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">trafo_site_to_image</span><span class="o">=</span><span class="n">trafo</span><span class="p">,</span> <span class="n">psf</span><span class="o">=</span><span class="n">psf</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">imggen</span><span class="o">.</span><span class="n">generate_image</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(512, 512)</span>
+</pre></div>
+</div>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.gen.image_gen.ImageGenerator.generate_image" title="state_reconstruction.gen.image_gen.ImageGenerator.generate_image"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_image</span></code></a>([seed, sites_phase, ...])</p></td>
+<td><p>Gets a simulated fluorescence image.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.gen.image_gen.ImageGenerator.generate_image">
+<span class="sig-name descname"><span class="pre">generate_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sites_phase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_ref_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_ref_site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(169,</span> <span class="pre">84)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ret_vals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.image_gen.ImageGenerator.generate_image" title="Permalink to this definition"></a></dt>
+<dd><p>Gets a simulated fluorescence image.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>seed</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Random number generator seed.</p>
+</dd>
+<dt><strong>sites_phase</strong><span class="classifier"><cite>(float, float)</cite></span></dt><dd><p>Lattice phase.</p>
+</dd>
+<dt><strong>phase_ref_image, phase_ref_site</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Transformation phase reference.
+See <code class="xref py py-func docutils literal notranslate"><span class="pre">gen.trafo_gen.get_trafo_site_to_image()</span></code> for details.</p>
+</dd>
+<dt><strong>ret_vals</strong><span class="classifier"><cite>None</cite> or <cite>Iter[str]</cite></span></dt><dd><p>Selects return values.
+If <cite>None</cite>, returns only the simulated image.
+If <cite>Iter[str]</cite>, returns a dictionary containing selected values.
+See <cite>Returns</cite> for details and options.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>ret</strong><span class="classifier"><cite>ArrayData(2, float)</cite> or <cite>dict(str-&gt;Any)</cite></span></dt><dd><p>If <cite>ret_vals</cite> is <cite>None</cite>, returns the simulated image.
+Otherwise returns a dictionary containing the following items
+if selected in <cite>ret_vals</cite>:</p>
+</dd>
+<dt><strong>image_sample</strong><span class="classifier"><cite>ArrayData(2, float)</cite></span></dt><dd><p>Simulated image.</p>
+</dd>
+<dt><strong>coord_sites</strong><span class="classifier"><cite>np.ndarray(2, int)</cite></span></dt><dd><p>Site coordinates of occupied sites. Dimensions: <cite>[ndim, …]</cite>.</p>
+</dd>
+<dt><strong>coord_image</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>(Fractional) image coordinates of occupied sites.
+Dimensions: <cite>[ndim, …]</cite>.</p>
+</dd>
+<dt><strong>occ_2d_sites</strong><span class="classifier"><cite>ArrayData(2, float)</cite></span></dt><dd><p>Site occupations as 2D array in site coordinates.</p>
+</dd>
+<dt><strong>occ_2d_image</strong><span class="classifier"><cite>ArrayData(2, float)</cite></span></dt><dd><p>Site occupations as 2D array in image coordinates.</p>
+</dd>
+<dt><strong>brightness</strong><span class="classifier"><cite>np.ndarray(1, float)</cite></span></dt><dd><p>Brightness of each atom.</p>
+</dd>
+<dt><strong>brightness_2d_sites</strong><span class="classifier"><cite>ArrayData(2, float)</cite></span></dt><dd><p>Brightness as 2D array in site coordinates.</p>
+</dd>
+<dt><strong>image_clean</strong><span class="classifier"><cite>ArrayData(2, float)</cite></span></dt><dd><p>Noise-free simulated image.</p>
+</dd>
+<dt><strong>trafo</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>(Phase-shifted) affine transformation between sites and image
+coordinates.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.image_gen.apply_coords">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.image_gen.</span></span><span class="sig-name descname"><span class="pre">apply_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fill</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(170,</span> <span class="pre">170)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">0)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.image_gen.apply_coords" title="Permalink to this definition"></a></dt>
+<dd><p>Uses given coordinates to fill a 2D array.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>X, Y</strong><span class="classifier"><cite>Array[1, int]</cite></span></dt><dd><p>Coordinates to be filled.</p>
+</dd>
+<dt><strong>vals</strong><span class="classifier"><cite>float</cite> or <cite>Array[1, float]</cite></span></dt><dd><p>Fill value corresponding to <cite>X, Y</cite>.
+If <cite>float</cite>, fills the given value on all coordinates.</p>
+</dd>
+<dt><strong>fill</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Default unfilled value.</p>
+</dd>
+<dt><strong>rect</strong><span class="classifier"><cite>Iter[(int, int)]</cite></span></dt><dd><p>Size of returned 2D array. Dimensions: <cite>[ndim, (min, max)]</cite>.
+Takes precedence for specifying 2D array.</p>
+</dd>
+<dt><strong>center, size, offset</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>A combination of these values are used to construct <cite>rect</cite>
+if <cite>rect</cite> is not given.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>ad</strong><span class="classifier"><cite>ArrayData(2, float)</cite></span></dt><dd><p>Filled 2D array.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.image_gen.get_brightness_sample">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.image_gen.</span></span><span class="sig-name descname"><span class="pre">get_brightness_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additive_distributions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.image_gen.get_brightness_sample" title="Permalink to this definition"></a></dt>
+<dd><p>Gets Gaussian-distributed random brightness values with unity mean.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>X, Y</strong><span class="classifier"><cite>Array[1, float]</cite></span></dt><dd><p>Site coordinates.</p>
+</dd>
+<dt><strong>std</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Standard deviation of brightness.</p>
+</dd>
+<dt><strong>additive_distributions</strong><span class="classifier"><cite>Iter[[float or callable, float, float]]</cite></span></dt><dd><p>Each item leads to additive brightness. The items are interpreted as:
+<cite>[probability to add this distribution, mean, std]</cite>.
+If a <cite>float</cite> is given for the probability, it is uniformly applied
+to all atoms. If a <cite>callable</cite> is given, it should have the signature:
+<cite>func(X, Y)-&gt;probability</cite>.</p>
+</dd>
+<dt><strong>seed</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Random number generator seed.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>brightness</strong><span class="classifier"><cite>np.ndarray(1, float)</cite></span></dt><dd><p>Random brightness values.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.image_gen.get_image_clean">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.image_gen.</span></span><span class="sig-name descname"><span class="pre">get_image_clean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_psfs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">brightness</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integration_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(512,</span> <span class="pre">512)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.image_gen.get_image_clean" title="Permalink to this definition"></a></dt>
+<dd><p>Gets a noise-free image for given atom coordinates and binned PSFs.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>local_psfs</strong><span class="classifier"><cite>dict(str-&gt;Iter[Any])</cite></span></dt><dd><p>Data object obtained from <a class="reference internal" href="#state_reconstruction.gen.image_gen.get_local_psfs" title="state_reconstruction.gen.image_gen.get_local_psfs"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_local_psfs()</span></code></a>.
+(Alternatively: provide <cite>(X, Y, psf, integration_size)</cite>.)</p>
+</dd>
+<dt><strong>brightness</strong><span class="classifier"><cite>float</cite> or <cite>Array[1, float]</cite></span></dt><dd><p>Brightness of each atom.
+If <cite>float</cite>, uses same brightness for all atoms.</p>
+</dd>
+<dt><strong>size</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Image shape.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>img</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Atomic fluorescence image.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.image_gen.get_image_sample">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.image_gen.</span></span><span class="sig-name descname"><span class="pre">get_image_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_clean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">counts_per_atom</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_counts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">white_noise_counts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.image_gen.get_image_sample" title="Permalink to this definition"></a></dt>
+<dd><p>Gets an image with Poissonian fluorescence noise and background noise.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>image_clean</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Noise-free image.
+Array sum should equal number of atoms multiplied by brightness.</p>
+</dd>
+<dt><strong>counts_per_atom</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Number of sampled counts per atom.</p>
+</dd>
+<dt><strong>normalize_counts</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether the resulting image should be normalized.</p>
+</dd>
+<dt><strong>white_noise_counts</strong><span class="classifier"><cite>int</cite> or <cite>None</cite></span></dt><dd><p>Standard deviation of Gaussian white background noise.
+If <cite>None</cite>, does not apply background noise.</p>
+</dd>
+<dt><strong>seed</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Random number generator seed.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>image_sample</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Noisy image.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.image_gen.get_local_psfs">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.image_gen.</span></span><span class="sig-name descname"><span class="pre">get_local_psfs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrated_psf_generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integration_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.image_gen.get_local_psfs" title="Permalink to this definition"></a></dt>
+<dd><p>Given image coordinates, gets the local binned PSF.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>X, Y</strong><span class="classifier"><cite>Array[1, float]</cite></span></dt><dd><p>Fractional image coordinates of PSF centers.</p>
+</dd>
+<dt><strong>integrated_psf_generator</strong><span class="classifier"><cite>IntegratedPsfGenerator</cite></span></dt><dd><p>Binned PSF generator object.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>res</strong><span class="classifier"><cite>dict(str-&gt;Iter[Any])</cite></span></dt><dd><p>Dictionary containing the following items:</p>
+</dd>
+<dt><strong>psf</strong><span class="classifier"><cite>list(np.ndarray(2, float))</cite></span></dt><dd><p>Local binned PSFs.</p>
+</dd>
+<dt><strong>X_int, Y_int</strong><span class="classifier"><cite>np.ndarray(1, int)</cite></span></dt><dd><p>Rounded PSF center coordinates.</p>
+</dd>
+<dt><strong>X_min, X_max, Y_min, Y_max</strong><span class="classifier"><cite>np.ndarray(1, int)</cite></span></dt><dd><p>Rounded PSF rectangle corners.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.image_gen.get_sites_mi">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.image_gen.</span></span><span class="sig-name descname"><span class="pre">get_sites_mi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(85,</span> <span class="pre">85)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(15,</span> <span class="pre">15)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'round'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outside_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outside_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.image_gen.get_sites_mi" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the site coordinates of an atomic array.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>center</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Center site.</p>
+</dd>
+<dt><strong>size</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Full size of the array in units of sites.</p>
+</dd>
+<dt><strong>filling</strong><span class="classifier"><cite>float</cite> or <cite>None</cite></span></dt><dd><p>Filling fraction. If <cite>None</cite>, assumes unity filling.</p>
+</dd>
+<dt><strong>shape</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>Spatial shape of array. Options: <cite>“round”, “square”</cite>.</p>
+</dd>
+<dt><strong>outside_count</strong><span class="classifier"><cite>int</cite> or <cite>None</cite></span></dt><dd><p>Number of atoms outside the array <cite>size</cite>.
+If <cite>None</cite>, uses zero.</p>
+</dd>
+<dt><strong>outside_size</strong><span class="classifier"><cite>int</cite> or <cite>(int, int)</cite></span></dt><dd><p>Size within which outside atoms are located.</p>
+</dd>
+<dt><strong>seed</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Random number generator seed.
+The RNG is used for finite filling and outside atom location.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>X, Y</strong><span class="classifier"><cite>np.ndarray(1, float)</cite></span></dt><dd><p>Coordinates of occupied sites.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-state_reconstruction.gen.proj_gen">
+<span id="proj-gen"></span><h2>proj_gen<a class="headerlink" href="#module-state_reconstruction.gen.proj_gen" title="Permalink to this headline"></a></h2>
+<p>Projector generator.</p>
+<p>Calculates the projectors to map images to lattice sites.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.proj_gen.</span></span><span class="sig-name descname"><span class="pre">ProjectorGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trafo_site_to_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrated_psf_generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_embedding_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class for generating projectors from PSFs.</p>
+<p>Uses pre-calculation to allow for high-performance generation
+of subpixel-shifted projectors.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>trafo_site_to_image</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Affine transformation between site and image coordinates.</p>
+</dd>
+<dt><strong>integrated_psf_generator</strong><span class="classifier"><cite>IntegratedPsfGenerator</cite></span></dt><dd><p>Binned PSF generator object.</p>
+</dd>
+<dt><strong>rel_embedding_size</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Relative embedding size used for calculating the projectors.
+See <a class="reference internal" href="#state_reconstruction.gen.proj_gen.get_projector" title="state_reconstruction.gen.proj_gen.get_projector"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_projector()</span></code></a> for details.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Standard use case given a <code class="xref py py-class docutils literal notranslate"><span class="pre">IntegratedPsfGenerator</span></code> and
+an <cite>AffineTrafo2d</cite> object:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">ipsfgen</span><span class="p">)</span>
+<span class="go">state_reconstruction.gen.psf_gen.IntegratedPsfGenerator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ipsfgen</span><span class="o">.</span><span class="n">psf_shape</span>
+<span class="go">(21, 21)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">trafo</span><span class="p">)</span>
+<span class="go">libics.tools.trafo.linear.AffineTrafo2d</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prjgen</span> <span class="o">=</span> <span class="n">ProjectorGenerator</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">trafo_site_to_image</span><span class="o">=</span><span class="n">trafo</span><span class="p">,</span> <span class="n">integrated_psf_generator</span><span class="o">=</span><span class="n">ipsfgen</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prjgen</span><span class="o">.</span><span class="n">setup_cache</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prjgen</span><span class="o">.</span><span class="n">proj_cache_built</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prjgen</span><span class="o">.</span><span class="n">generate_projector</span><span class="p">(</span><span class="n">dx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(21, 21)</span>
+</pre></div>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><strong>proj_cache_built</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether the internal cache has been set up.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.generate_projector" title="state_reconstruction.gen.proj_gen.ProjectorGenerator.generate_projector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_projector</span></code></a>([dx, dy])</p></td>
+<td><p>Gets the projector with subpixel shift.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.setup_cache" title="state_reconstruction.gen.proj_gen.ProjectorGenerator.setup_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_cache</span></code></a>([print_progress])</p></td>
+<td><p>Sets up the cache for generating subpixel-shifted projectors.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.generate_projector">
+<span class="sig-name descname"><span class="pre">generate_projector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.generate_projector" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the projector with subpixel shift.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>dx, dy</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Projector center shift in units of fully resolved pixels.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>projector</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Projector.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.psf_shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">psf_shape</span></span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.psf_shape" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.psf_supersample">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">psf_supersample</span></span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.psf_supersample" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.setup_cache">
+<span class="sig-name descname"><span class="pre">setup_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">print_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.setup_cache" title="Permalink to this definition"></a></dt>
+<dd><p>Sets up the cache for generating subpixel-shifted projectors.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.get_embedded_local_psfs">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.proj_gen.</span></span><span class="sig-name descname"><span class="pre">get_embedded_local_psfs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">local_psfs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.get_embedded_local_psfs" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the local PSFs embedded in a full image.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>local_psfs</strong><span class="classifier"><cite>dict(str-&gt;Iter[Any])</cite></span></dt><dd><p>Data object obtained from <code class="xref py py-func docutils literal notranslate"><span class="pre">gen.image_gen.get_local_psfs()</span></code>.</p>
+</dd>
+<dt><strong>offset</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Global offset of coordinates given in <cite>local_psfs</cite>.</p>
+</dd>
+<dt><strong>size</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Full image shape.</p>
+</dd>
+<dt><strong>normalize</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to normalize the individual embedded PSFs.
+(Might be necessary if PSFs are located at edges of image.)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>images</strong><span class="classifier"><cite>np.ndarray(3, float)</cite></span></dt><dd><p>Local PSFs embedded in full image. Dimensions: <cite>[n_psfs, x, y]</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.get_embedded_projectors">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.proj_gen.</span></span><span class="sig-name descname"><span class="pre">get_embedded_projectors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">embedded_psfs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.get_embedded_projectors" title="Permalink to this definition"></a></dt>
+<dd><p>Calculates the orthogonal projectors given all embedded PSFs.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>embedded_psfs</strong><span class="classifier"><cite>np.ndarray(3, float)</cite></span></dt><dd><p>Local PSFs embedded in full image. Dimensions: <cite>[n_psfs, x, y]</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>projs</strong><span class="classifier"><cite>np.ndarray(3, float)</cite></span></dt><dd><p>Projectors embedded in full image. Dimensions: <cite>[n_psfs, x, y]</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.get_projector">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.proj_gen.</span></span><span class="sig-name descname"><span class="pre">get_projector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trafo_site_to_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrated_psf_generator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_embedding_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.get_projector" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the projector associated with a subpixel-shifted binned PSF.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>trafo_site_to_image</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Affine transformation between sites and image coordinates.</p>
+</dd>
+<dt><strong>integrated_psf_generator</strong><span class="classifier"><cite>IntegratedPsfGenerator</cite></span></dt><dd><p>Integrated PSF generator object.</p>
+</dd>
+<dt><strong>dx, dy</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>PSF center shift in (fully-resolved) subpixels.</p>
+</dd>
+<dt><strong>rel_embedding_size</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Size of the image in which the projector is calculated,
+where the <cite>rel_embedding_size</cite> specifies this size with respect to
+the binned PSF size.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>center_proj</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Projector. Dimensions: <cite>[n_binned_psf, n_binned_psf]</cite></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.get_sites_pos_in_roi">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.proj_gen.</span></span><span class="sig-name descname"><span class="pre">get_sites_pos_in_roi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trafo_site_to_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.get_sites_pos_in_roi" title="Permalink to this definition"></a></dt>
+<dd><p>Gets all sites within the ROI of an image rectangle.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>trafo_site_to_image</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Affine transformation between sites and image coordinates.</p>
+</dd>
+<dt><strong>rect</strong><span class="classifier"><cite>Iter[(int, int)]</cite></span></dt><dd><p>Image rectangle specifying the ROI. Dimensions: <cite>[ndim, (min, max)]</cite>.
+Takes precedence over <cite>center/size</cite>.</p>
+</dd>
+<dt><strong>center, size</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Alternative parametrization of <cite>rect</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>image_pos</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>(Fractional) atom positions in image coordinates.
+Dimensions: <cite>[n_atoms, ndim]</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-state_reconstruction.gen.psf_gen">
+<span id="psf-gen"></span><h2>psf_gen<a class="headerlink" href="#module-state_reconstruction.gen.psf_gen" title="Permalink to this headline"></a></h2>
+<p>PSF generator.</p>
+<p>Generates point spread functions.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.psf_gen.</span></span><span class="sig-name descname"><span class="pre">IntegratedPsfGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf_supersample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class for generating binned PSFs.</p>
+<p>Uses pre-calculation to allow for high-performance generation
+of subpixel-shifted binned PSFs.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>psf</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Fully resolved PSF.</p>
+</dd>
+<dt><strong>psf_supersample</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Binning size.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Standard use case given a fully resolved PSF:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">psf</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(105, 105)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ipsfgen</span> <span class="o">=</span> <span class="n">IntegratedPsfGenerator</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">psf</span><span class="o">=</span><span class="n">psf</span><span class="p">,</span> <span class="n">psf_supersample</span><span class="o">=</span><span class="mi">5</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ipsfgen</span><span class="o">.</span><span class="n">setup_cache</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ipsfgen</span><span class="o">.</span><span class="n">psf_integrated_cache_built</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ipsfgen</span><span class="o">.</span><span class="n">generate_integrated_psf</span><span class="p">(</span><span class="n">dx</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dy</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(21, 21)</span>
+</pre></div>
+</div>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><strong>psf_integrated_cache_built</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether the internal cache has been set up.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.generate_integrated_psf" title="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.generate_integrated_psf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_integrated_psf</span></code></a>([dx, dy])</p></td>
+<td><p>Gets the binned PSF with subpixel shift.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.setup_cache" title="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.setup_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_cache</span></code></a>([print_progress])</p></td>
+<td><p>Sets up the cache for generating subpixel-shifted binned PSFs.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.generate_integrated_psf">
+<span class="sig-name descname"><span class="pre">generate_integrated_psf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.generate_integrated_psf" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the binned PSF with subpixel shift.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>dx, dy</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>PSF center shift in units of fully resolved pixels.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>integrated_psf</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Normalized binned PSF.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.psf">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">psf</span></span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.psf" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.psf_shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">psf_shape</span></span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.psf_shape" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.psf_supersample">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">psf_supersample</span></span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.psf_supersample" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.setup_cache">
+<span class="sig-name descname"><span class="pre">setup_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">print_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.setup_cache" title="Permalink to this definition"></a></dt>
+<dd><p>Sets up the cache for generating subpixel-shifted binned PSFs.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.get_integrated_psf">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.psf_gen.</span></span><span class="sig-name descname"><span class="pre">get_integrated_psf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integration_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.get_integrated_psf" title="Permalink to this definition"></a></dt>
+<dd><p>Gets a binned PSF with subpixel shift.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>psf</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Fully resolved PSF array.</p>
+</dd>
+<dt><strong>dx, dy</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Center shift of PSF in (fully resolved) pixels.
+Used to generate subpixel-precise binned PSFs (binned pixels).</p>
+</dd>
+<dt><strong>integration_size</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Binning size in (fully resolved) pixels.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>new_psf</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Binned PSF with shape <cite>psf.shape // integration_size</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.get_psf_airy">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.psf_gen.</span></span><span class="sig-name descname"><span class="pre">get_psf_airy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">25</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.get_psf_airy" title="Permalink to this definition"></a></dt>
+<dd><p>Gets an array representing an Airy PSF.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>wx, wy</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Airy width of PSF along the respective axes in pixels.</p>
+</dd>
+<dt><strong>dx, dy</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Center offset along the respective axes in pixels.</p>
+</dd>
+<dt><strong>tilt</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Orientation of symmetry axes in radians (rad).</p>
+</dd>
+<dt><strong>size</strong><span class="classifier"><cite>float</cite> or <cite>(float, float)</cite></span></dt><dd><p>Array size of PSF in pixels.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>psf</strong><span class="classifier"><cite>ArrayData[2, float]</cite></span></dt><dd><p>Airy PSF array.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.get_psf_airy_width">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.psf_gen.</span></span><span class="sig-name descname"><span class="pre">get_psf_airy_width</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wavelength</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">px_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focal_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aperture_radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numerical_aperture</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.68</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.get_psf_airy_width" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the width of an Airy PSF of a diffraction-limited optical system.</p>
+<p><a class="reference external" href="https://www1.univap.br/irapuan/Exame/difracao/difracao.html">https://www1.univap.br/irapuan/Exame/difracao/difracao.html</a></p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>wavelength</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Imaging wavelength in meter (m).</p>
+</dd>
+<dt><strong>px_size</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Pixel size of imaging system in meter (m). Serves as spatial unit.</p>
+</dd>
+<dt><strong>focal_length, aperture_radius</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Focal length and aperture radius of imaging system in meter (m).
+Alternativ to directly specifying the <cite>numerical_aperture</cite>.</p>
+</dd>
+<dt><strong>numerical_aperture</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Numerical aperture of imaging system.
+Takes precedence over <cite>focal_length</cite>/<cite>aperture_radius</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>width</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Airy PSF width in units of the <cite>px_size</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.get_psf_gaussian">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.psf_gen.</span></span><span class="sig-name descname"><span class="pre">get_psf_gaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tilt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">25</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.get_psf_gaussian" title="Permalink to this definition"></a></dt>
+<dd><p>Gets an array representing a Gaussian PSF.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>wx, wy</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Gaussian width of PSF along the respective axes in pixels.</p>
+</dd>
+<dt><strong>dx, dy</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Center offset along the respective axes in pixels.</p>
+</dd>
+<dt><strong>tilt</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Orientation of symmetry axes in radians (rad).</p>
+</dd>
+<dt><strong>size</strong><span class="classifier"><cite>float</cite> or <cite>(float, float)</cite></span></dt><dd><p>Array size of PSF in pixels.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>psf</strong><span class="classifier"><cite>ArrayData[2, float]</cite></span></dt><dd><p>Gaussian PSF array.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.get_psf_gaussian_width">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.psf_gen.</span></span><span class="sig-name descname"><span class="pre">get_psf_gaussian_width</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wavelength</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">px_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focal_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aperture_radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numerical_aperture</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.68</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.get_psf_gaussian_width" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the width of a Gaussian PSF of a diffraction-limited optical system.</p>
+<p><a class="reference external" href="https://en.wikipedia.org/wiki/Airy_disk#Approximation_using_a_Gaussian_profile">https://en.wikipedia.org/wiki/Airy_disk#Approximation_using_a_Gaussian_profile</a></p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>wavelength</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Imaging wavelength in meter (m).</p>
+</dd>
+<dt><strong>px_size</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Pixel size of imaging system in meter (m). Serves as spatial unit.</p>
+</dd>
+<dt><strong>focal_length, aperture_radius</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Focal length and aperture radius of imaging system in meter (m).
+Alternativ to directly specifying the <cite>numerical_aperture</cite>.</p>
+</dd>
+<dt><strong>numerical_aperture</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Numerical aperture of imaging system.
+Takes precedence over <cite>focal_length</cite>/<cite>aperture_radius</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>width</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Gaussian PSF width in units of the <cite>px_size</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-state_reconstruction.gen.trafo_gen">
+<span id="trafo-gen"></span><h2>trafo_gen<a class="headerlink" href="#module-state_reconstruction.gen.trafo_gen" title="Permalink to this headline"></a></h2>
+<p>Transformation generator.</p>
+<p>Generates affine transformations between sites and image coordinates.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.trafo_gen.get_phase_from_trafo_site_to_image">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.trafo_gen.</span></span><span class="sig-name descname"><span class="pre">get_phase_from_trafo_site_to_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trafo_site_to_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_ref_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">0)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.trafo_gen.get_phase_from_trafo_site_to_image" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the lattice phase and ref. integer site in <cite>librbl</cite> convention.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>trafo_site_to_image</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Transformation between lattice sites and fluorescence image.</p>
+</dd>
+<dt><strong>phase_ref_fluo</strong><span class="classifier"><cite>np.ndarray(1, float)</cite></span></dt><dd><p>Fluorescence image coordinate corresponding to integer lattice site.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>phase</strong><span class="classifier"><cite>np.ndarray(1, float)</cite></span></dt><dd><p>Phase (residual) of lattice w.r.t. to image coordinates (0, 0).</p>
+</dd>
+<dt><strong>site</strong><span class="classifier"><cite>np.ndarray(1, float)</cite></span></dt><dd><p>Nearest integer lattice site.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.trafo_gen.get_trafo_site_to_image">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.trafo_gen.</span></span><span class="sig-name descname"><span class="pre">get_trafo_site_to_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">magnification</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trafo_site_to_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_ref_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_ref_site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(169,</span> <span class="pre">84)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([0.,</span> <span class="pre">0.])</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.trafo_gen.get_trafo_site_to_image" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the default transformation.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>magnification, angle</strong><span class="classifier"><cite>np.ndarray(1, float)</cite> or <cite>None</cite></span></dt><dd><p>Origin axes magnification and angle.</p>
+</dd>
+<dt><strong>trafo_site_to_image</strong><span class="classifier"><cite>AffineTrafo2d</cite> or <cite>None</cite></span></dt><dd><p>Uses the origin axes from this trafo object.
+Is overwritten by <cite>magnification</cite> and <cite>angle</cite>.</p>
+</dd>
+<dt><strong>phase_ref_image, phase_ref_site</strong><span class="classifier"><cite>np.ndarray(1, float)</cite> or <cite>None</cite></span></dt><dd><p>Phase reference (phase = (0, 0)) in fluorescence image
+and lattice site coordinates.</p>
+</dd>
+<dt><strong>phase</strong><span class="classifier"><cite>np.ndarray(float, float)</cite></span></dt><dd><p>Lattice phase (fluo axes in site space = reference + phase).</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>trafo</strong><span class="classifier"><cite>AffineTrafo2d</cite></span></dt><dd><p>Site-to-fluorescence-image transformation.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="Documentation of state_reconstruction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="est.html" class="btn btn-neutral float-right" title="state_reconstruction.est" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2021, David Wei.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
