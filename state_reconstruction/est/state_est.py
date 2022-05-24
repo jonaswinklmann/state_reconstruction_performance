@@ -1,3 +1,9 @@
+"""
+State estimator.
+
+Projects an image into site space and assigns a emission state.
+"""
+
 import numba as nb
 import numpy as np
 import scipy.optimize
@@ -27,6 +33,34 @@ def _slice_local_image(local_images, image, X_min, X_max, Y_min, Y_max):
 
 
 def get_local_images(X, Y, image, shape, psf_supersample=5):
+    """
+    Extracts image subregions and subpixel shifts.
+
+    Parameters
+    ----------
+    X, Y : `Array[1, float]`
+        (Fractional) center positions in image coordinates.
+    image : `Array[2, float]`
+        Full-sized image.
+    shape : `(int, int)`
+        Shape of subregion images.
+    psf_supersample : `int`
+        Supersampling size
+        (used to convert fractional positions to subpixel shifts).
+
+    Returns
+    -------
+    ret : `dict(str->Any)`
+        Returns a dictionary containing the following items:
+    image : `np.ndarray(3, float)`
+        Subregion images. Dimension: `[n_subregions, {shape}]`.
+    X_int, Y_int : `np.ndarray(1, int)`
+        Rounded PSF center coordinates.
+    X_min, X_max, Y_min, Y_max : `np.ndarray(1, int)`
+        Rounded PSF rectangle corners.
+    dx, dy : `np.ndarray(1, int)`
+        Subpixel shifts.
+    """
     X_int, Y_int = np.round(X).astype(int), np.round(Y).astype(int)
     dx = np.round((X - X_int) * psf_supersample).astype(int)
     dy = np.round((Y - Y_int) * psf_supersample).astype(int)
@@ -43,6 +77,21 @@ def get_local_images(X, Y, image, shape, psf_supersample=5):
 
 
 def apply_projectors(local_images, projector_generator):
+    """
+    Applies subpixel-shifted projectors to subregion images.
+
+    Parameters
+    ----------
+    local_images : `np.ndarray(3, float)`
+        Subregion images. Dimension: `[n_subregions, {shape}]`.
+    projector_generator : `ProjectorGenerator`
+        Projector generator object.
+
+    Returns
+    -------
+    emissions : `np.ndarray(1, float)`
+        Projected results. Dimensions: `[n_subregions]`.
+    """
     images = local_images["image"]
     images = images.reshape((len(images), -1))
     if not projector_generator.proj_cache_built:
@@ -78,6 +127,38 @@ def _erf_probability(x, x0, wx):
 def get_emission_histogram(
     emissions, min_peak_rel_dist=2, bin_range=None
 ):
+    """
+    Gets state discrimination thresholds from projected images.
+
+    Uses a histogram to find two or three peaks. The thresholds are set
+    by setting equal false negativer/positive rates.
+
+    Parameters
+    ----------
+    emissions : `Array[1, float]`
+        Projected image subregions.
+    min_peak_rel_dist : `int`
+        If the spacing between the first two peaks is smaller than
+        the product of background peak width and `min_peak_rel_dist`,
+        an error is raised.
+    bin_range : `None` or `(float, float)`
+        Bin range used to obtain the histogram.
+
+    Returns
+    -------
+    ret : `dict(str->Any)`
+        Returns a dictionary containing the following items:
+    histogram : `ArrayData(1, float)`
+        Projected image histogram.
+    center : `[float, float, float]`
+        Peak centers.
+    threshold : `[float, float]`
+        State thresholds.
+    error_num : `[float, float]`
+        False positive/negative counts at first/second threshold.
+    emission_num : `[float, float, float]`
+        Number of sites mapped to the different states.
+    """
     emissions = np.ravel(np.array(emissions))
     # Create histogram
     size = emissions.size
@@ -148,6 +229,22 @@ def get_emission_histogram(
 
 
 def get_state_estimate(emissions, thresholds):
+    """
+    Applies state thresholds to a projected image.
+
+    Parameters
+    ----------
+    emissions : `Array[float]`
+        Projected image.
+    thresholds : `Iter[float]`
+        State thresholds.
+        States will be labelled according to the `thresholds` index.
+
+    Returns
+    -------
+    state : `Array[int]`
+        Projected image mapped to states.
+    """
     if np.isscalar(thresholds):
         thresholds = [thresholds]
     thresholds = np.sort(thresholds)
@@ -167,12 +264,88 @@ def get_state_estimate(emissions, thresholds):
 
 class ReconstructionResult:
 
+    """
+    State reconstruction results container.
+
+    Attributes
+    ----------
+    trafo : `AffineTrafo2d`
+        Affine transformation between sites and image coordinates.
+    emissions : `ArrayData(2, float)`
+        Image projected onto sites.
+    state : `ArrayData(2, int)`
+        Estimated state of each site.
+    label_center : `np.ndarray(2, float)`
+        Positions of isolated atoms in image coordinates.
+        Dimensions: `[n_atoms, ndim]`.
+    histogram : `ArrayData(1, float)`
+        Histogram of projected values.
+    hist_center : `[float, float, float]`
+        Projected center value for the states.
+    hist_threshold : `[float, float]`
+        State discrimination threshold of projected values.
+    hist_error_num : `[float, float]`
+        False negative/positive number at thresholds.
+    hist_emission_num : `[int, int, int]`
+        Number of sites associated to each state.
+    """
+
+    _attributes = {
+        "trafo", "emissions", "state", "label_center",
+        "histogram", "hist_center", "hist_threshold",
+        "hist_error_num", "hist_emission_num"
+    }
+
+    LOGGER = get_logger("srec.ReconstructionResult")
+
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
+            if k not in self._attributes:
+                self.LOGGER.warn(f"Invalid attribute: {str(k)}")
             setattr(self, k, v)
 
 
 class StateEstimator:
+
+    """
+    Class for state reconstruction from a fluorescence image.
+
+    Parameters
+    ----------
+    projector_generator : `ProjectorGenerator`
+        Projector generator object.
+    isolated_locator : `IsolatedLocator`
+        Isolated atoms locator object,
+        used to obtain the transformation phase.
+    trafo_site_to_image : `AffineTrafo2d`
+        Transformation between sites and image coordinates.
+        Its phase is optimized for each image individually.
+    sites_shape : `(int, int)`
+        Shape of 2D array representing lattice sites.
+
+    Examples
+    --------
+    Standard use case given a projector generator, isolated atoms locator
+    and an image to be reconstructed:
+
+    >>> type(prjgen)
+    state_reconstruction.gen.proj_gen.ProjectorGenerator
+    >>> type(isoloc)
+    state_reconstruction.est.iso_est.IsolatedLocator
+    >>> image.shape
+    (512, 512)
+    >>> stest = StateEstimator(
+    ...     projector_generator=prjgen,
+    ...     isolated_locator=isoloc,
+    ...     sites_shape=(170, 170)
+    ... )
+    >>> stest.setup()
+    >>> recres = stest.reconstruct(image)
+    >>> type(recres)
+    state_reconstruction.est.state_est.ReconstructionResult
+    >>> recres.state.shape
+    (170, 170)
+    """
 
     LOGGER = get_logger("srec.StateEstimator")
 
@@ -189,6 +362,9 @@ class StateEstimator:
         self.sites_shape = sites_shape
 
     def setup(self, print_progress=True):
+        """
+        Checks that all attributes are set and initializes them.
+        """
         if self.trafo_site_to_image is None:
             if self.projector_generator is not None:
                 self.trafo_site_to_image = (
@@ -222,6 +398,23 @@ class StateEstimator:
         return self.projector_generator.psf_supersample
 
     def reconstruct(self, image, new_trafo=None):
+        """
+        Reconstructs the state of each lattice site from an image.
+
+        Parameters
+        ----------
+        image : `Array[2, float]`
+            Fluorescence image to be reconstructed.
+        new_trafo : `None` or `AffineTrafo2d`
+            If `AffineTrafo2d`, uses `new_trafo` to project the state.
+            If `None`, a `new_trafo` is created by optimizing the
+            transformation phase.
+
+        Returns
+        -------
+        res : `ReconstructionResult`
+            Reconstruction result.
+        """
         # Find trafo phase
         label_centers = np.array([])
         if new_trafo is None:

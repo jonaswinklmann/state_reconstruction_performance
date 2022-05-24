@@ -17,6 +17,8 @@ from libics.tools.math.signal import find_peaks_1d
 from libics.tools.math.models import ModelBase
 from libics.tools.math.peaked import FitGaussian1d, gaussian_1d, FitParabolic1d
 
+LOGGER = get_logger("srec.trafo_est")
+
 
 ###############################################################################
 # Transformation parameter optimization
@@ -28,6 +30,57 @@ def get_trafo_angle_fidelity(
     bins_per_site=5, peak_rel_prominence=0.1, peak_base_prominence_ratio=0.1,
     rel_spacing_tol=0.2
 ):
+    """
+    Calculates the projected transformation fidelity.
+
+    Parameters
+    ----------
+    x, y : `Array[1, float]`
+        Lattice sites in image coordinates.
+    guess_trafo : `AffineTrafo2d`
+        Affine transformation from sites to image coordinates to be checked.
+    ax : `int` or `Iter[int]`
+        Transformation axes along which to perform the fidelity analysis.
+        The return values are vectorial if `ax` is vectorial and vice versa.
+    bins_per_site : `int`
+        Number of histogram bins per unit distance.
+    peak_rel_prominence, peak_base_prominence_ratio : `float`
+        Peak finding parameters.
+        See :py:func:`libics.tools.math.signal.find_peaks_1d` for details.
+    rel_spacing_tol : `float`
+        Maximum allowed relative spacing deviation between the fitted
+        spacing and the guessed spacing (extracted from `guess_trafo`).
+
+    Returns
+    -------
+    ret : `dict(str->Any)` or `dict(str->Iter[Any])`
+        Returns a dictionary containing the following items.
+        The return is vectorial if `ax` is vectorial.
+    projected_distance : `ArrayData(1, float)`
+        Histogram of positional differences.
+    spacing : `float`
+        Fitted spacing relative to the spacing extracted from `guess_trafo`.
+    width : `float`
+        Fitted peak width relative to the spacing extracted from `guess_trafo`.
+    fidelity : `float`
+        Fidelity of transformation, defined as `1 - (width / spacing)²`.
+
+    Notes
+    -----
+    Summary of the algorithm:
+
+    * First, the image coordinates are transformed to site space.
+    * Then the mutual differences are calculated (i.e. N² values).
+      Due to translational invariance, the mutual differences should have
+      regular peaks spaced by the lattice spacing.
+    * Due to the many available values, a well-resolved histogram can be
+      generated, revealing this peak structure.
+    * Using a peak finder, the position and width of the peaks are determined.
+    * If the peaks are sufficiently regular, a periodic Gaussian is fitted.
+    * We use `1 - (width / spacing)²` as a fidelity measure.
+    * Performing this analysis along the x (y) axis yields the
+      fidelity of the transformation angle along the y (x) vectors.
+    """
     # Parse parameters
     ax_is_scalar = np.isscalar(ax)
     if ax_is_scalar:
@@ -125,6 +178,41 @@ def get_trafo_from_sites_direct(
     bins_per_site=5, peak_rel_prominence=0.1, peak_base_prominence_ratio=0.1,
     min_fidelity=0.8, print_progress=False
 ):
+    """
+    Gets the optimum transformation from given lattice sites.
+
+    Parameters
+    ----------
+    x, y : `Array[1, float]`
+        Lattice sites in image coordinates.
+    guess_trafo : `AffineTrafo2d`
+        Initial guess for the affine transformation between sites and
+        image coordinates.
+    angle_range : `float`
+        Angle range in which to optimize in radians (rad).
+    angle_num : `int`
+        Number of steps in `angle_range`.
+    bins_per_site, peak_rel_prominence, peak_base_prominence_ratio : `float`
+        Transformation fidelity estimation parameters.
+        See :py:func:`get_trafo_angle_fidelity` for details.
+    min_fidelity : `float`
+        Minimum transformation fidelity to be considered valid.
+    print_progress : `bool`
+        Whether to print a progress bar.
+
+    Returns
+    -------
+    ret : `dict(str->Any)`
+        Returns a dictionary containing the following items:
+    trafo : `AffineTrafo2d`
+        Optimal transformation.
+    fidelity : `[ArrayData(1, float), ArrayData(1, float)]`
+        Fidelity v. angle for the `[x, y]` axes.
+    rel_spacing : `[ArrayData(1, float), ArrayData(1, float)]`
+        Spacing relative to `guess_trafo` v. angle for the `[x, y]` axes.
+    rel_width : `[ArrayData(1, float), ArrayData(1, float)]`
+        Width relative to `guess_trafo` v. angle for the `[x, y]` axes.
+    """
     # Parse parameters
     if np.isscalar(angle_range):
         angle_range = (angle_range, angle_range)
@@ -236,6 +324,7 @@ def get_trafo_from_sites_fit(x, y, guess_trafo):
     """
     Direct fit of transformation.
     """
+    LOGGER.warn("get_trafo_from_sites_fit: Function seems not to work")
     coord = np.array([x, y]).T
     guess_trafo = guess_trafo.invert()
 
@@ -264,6 +353,51 @@ def get_trafo_from_sites_fit(x, y, guess_trafo):
 
 class TrafoEstimator:
 
+    """
+    Class for estimating lattice angles and spacings.
+
+    Uses low-density atomic fluorescence images to optimize the
+    affine transformation between sites and image coordinates.
+
+    Parameters
+    ----------
+    isolated_locator : `IsolatedLocator`
+        Object for locating isolated atoms.
+    min_isolated_num : `int`
+        Minimum detected isolated atoms.
+    guess_trafo : `AffineTrafo2d`
+        Initially guessed transformation used as a starting point
+        for optimization.
+    angle_num : `int`
+        Number of angular steps used for optimization.
+    angle_range : `float`
+        Angular range in radians (rad) used for optimization.
+    bins_per_site, peak_rel_prominence, peak_base_prominence_ratio : `float`
+        Transformation fidelity estimation parameters.
+        See :py:func:`get_trafo_angle_fidelity` for details.
+    min_fidelity : `float`
+        Angular optimization parameter.
+        See :py:func:`get_trafo_from_sites_direct` for details.
+
+    Examples
+    --------
+    Standard use case given a guessed transformation, an isolated
+    atoms locator object and low-density images:
+
+    >>> type(guess_trafo)
+    libics.tools.trafo.linear.AffineTrafo2d
+    >>> type(isoloc)
+    srec.est.iso_est.IsolatedLocator
+    >>> images.shape
+    (10, 512, 512)
+    >>> trfest = TrafoEstimator(
+    ...     isolated_locator=isoloc,
+    ...     guess_trafo=guess_trafo
+    ... )
+    >>> type(trfest.find_trafo(*images))
+    libics.tools.trafo.linear.AffineTrafo2d
+    """
+
     LOGGER = get_logger("srec.TrafoEstimator")
 
     def __init__(
@@ -286,6 +420,9 @@ class TrafoEstimator:
         self.peak_base_prominence_ratio = peak_base_prominence_ratio
 
     def check_setup(self):
+        """
+        Checks whether all attributes are set up.
+        """
         if self.isolated_locator is None:
             raise RuntimeError("invalid `isolated_locator`")
         if self.guess_trafo is None:
@@ -293,6 +430,21 @@ class TrafoEstimator:
         return True
 
     def get_optimized_trafo(self, image, print_progress=False):
+        """
+        Gets the optimal transformation object from a single image.
+
+        Parameters
+        ----------
+        image : `Array[2, float]`
+            Low-density image.
+        print_progress : `bool`
+            Whether to print a progress bar.
+
+        Returns
+        -------
+        opt_trafo : `AffineTrafo2d`
+            Optimized transformation between sites and image coordinates.
+        """
         self.check_setup()
         # Find atom centers
         label_centers = self.isolated_locator.get_label_centers(image)
@@ -307,6 +459,23 @@ class TrafoEstimator:
         return opt_trafo
 
     def find_trafo(self, *images, print_progress=False):
+        """
+        Gets the optimal transformation object from a multiple images.
+
+        Averages the transformation parameters obtained from each image.
+
+        Parameters
+        ----------
+        *images : `Array[2, float]`
+            Low-density image.
+        print_progress : `bool`
+            Whether to print a progress bar.
+
+        Returns
+        -------
+        trafo : `AffineTrafo2d`
+            Optimized transformation between sites and image coordinates.
+        """
         _iter = misc.iter_progress(images) if print_progress else images
         opt_trafos = []
         for i, im in enumerate(_iter):
@@ -333,6 +502,8 @@ def get_trafo_phase_from_points(
     phase_offset_trial_thr=0.2, phase_std_trial_thr=0.2
 ):
     """
+    Gets the transformation phase from image coordinates.
+
     Parameters
     ----------
     x, y : `Array[1, float]`

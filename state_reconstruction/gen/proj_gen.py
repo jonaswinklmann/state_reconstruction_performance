@@ -1,3 +1,9 @@
+"""
+Projector generator.
+
+Calculates the projectors to map images to lattice sites.
+"""
+
 import copy
 import numpy as np
 
@@ -15,6 +21,25 @@ from state_reconstruction.gen.image_gen import get_local_psfs
 def get_sites_pos_in_roi(
     trafo_site_to_image, rect=None, center=None, size=None
 ):
+    """
+    Gets all sites within the ROI of an image rectangle.
+
+    Parameters
+    ----------
+    trafo_site_to_image : `AffineTrafo2d`
+        Affine transformation between sites and image coordinates.
+    rect : `Iter[(int, int)]`
+        Image rectangle specifying the ROI. Dimensions: `[ndim, (min, max)]`.
+        Takes precedence over `center/size`.
+    center, size : `(int, int)`
+        Alternative parametrization of `rect`.
+
+    Returns
+    -------
+    image_pos : `np.ndarray(2, float)`
+        (Fractional) atom positions in image coordinates.
+        Dimensions: `[n_atoms, ndim]`.
+    """
     # Parse parameters
     if rect is None:
         rect = [
@@ -46,6 +71,26 @@ def get_sites_pos_in_roi(
 def get_embedded_local_psfs(
     local_psfs, offset=None, size=None, normalize=True
 ):
+    """
+    Gets the local PSFs embedded in a full image.
+
+    Parameters
+    ----------
+    local_psfs : `dict(str->Iter[Any])`
+        Data object obtained from :py:func:`gen.image_gen.get_local_psfs`.
+    offset : `(int, int)`
+        Global offset of coordinates given in `local_psfs`.
+    size : `(int, int)`
+        Full image shape.
+    normalize : `bool`
+        Whether to normalize the individual embedded PSFs.
+        (Might be necessary if PSFs are located at edges of image.)
+
+    Returns
+    -------
+    images : `np.ndarray(3, float)`
+        Local PSFs embedded in full image. Dimensions: `[n_psfs, x, y]`.
+    """
     # Parse parameters
     lpsfs = local_psfs
     integrated_psfs = lpsfs["psf"]
@@ -98,6 +143,19 @@ def get_embedded_local_psfs(
 
 
 def get_embedded_projectors(embedded_psfs):
+    """
+    Calculates the orthogonal projectors given all embedded PSFs.
+
+    Parameters
+    ----------
+    embedded_psfs : `np.ndarray(3, float)`
+        Local PSFs embedded in full image. Dimensions: `[n_psfs, x, y]`.
+
+    Returns
+    -------
+    projs : `np.ndarray(3, float)`
+        Projectors embedded in full image. Dimensions: `[n_psfs, x, y]`.
+    """
     epsfs = np.array(embedded_psfs)
     psf_count = len(epsfs)
     im_shape = epsfs.shape[1:]
@@ -109,14 +167,35 @@ def get_embedded_projectors(embedded_psfs):
 
 
 def get_projector(
-    trafo_site_to_fluo, integrated_psf_generator,
+    trafo_site_to_image, integrated_psf_generator,
     dx=0, dy=0, rel_embedding_size=4
 ):
+    """
+    Gets the projector associated with a subpixel-shifted binned PSF.
+
+    Parameters
+    ----------
+    trafo_site_to_image : `AffineTrafo2d`
+        Affine transformation between sites and image coordinates.
+    integrated_psf_generator : `IntegratedPsfGenerator`
+        Integrated PSF generator object.
+    dx, dy : `int`
+        PSF center shift in (fully-resolved) subpixels.
+    rel_embedding_size : `int`
+        Size of the image in which the projector is calculated,
+        where the `rel_embedding_size` specifies this size with respect to
+        the binned PSF size.
+
+    Returns
+    -------
+    center_proj : `np.ndarray(2, float)`
+        Projector. Dimensions: `[n_binned_psf, n_binned_psf]`
+    """
     center_shift = (
         np.array([dx, dy]) / integrated_psf_generator.psf_supersample
     )
     # Center trafo
-    centered_trafo = copy.deepcopy(trafo_site_to_fluo)
+    centered_trafo = copy.deepcopy(trafo_site_to_image)
     centered_trafo.offset = np.zeros(2)
     # Build embedding area
     embedding_size = rel_embedding_size * integrated_psf_generator.psf_shape
@@ -151,6 +230,48 @@ def get_projector(
 
 class ProjectorGenerator:
 
+    """
+    Class for generating projectors from PSFs.
+
+    Uses pre-calculation to allow for high-performance generation
+    of subpixel-shifted projectors.
+
+    Parameters
+    ----------
+    trafo_site_to_image : `AffineTrafo2d`
+        Affine transformation between site and image coordinates.
+    integrated_psf_generator : `IntegratedPsfGenerator`
+        Binned PSF generator object.
+    rel_embedding_size : `int`
+        Relative embedding size used for calculating the projectors.
+        See :py:func:`get_projector` for details.
+
+    Attributes
+    ----------
+    proj_cache_built : `bool`
+        Whether the internal cache has been set up.
+
+    Examples
+    --------
+    Standard use case given a :py:class:`IntegratedPsfGenerator` and
+    an `AffineTrafo2d` object:
+
+    >>> type(ipsfgen)
+    state_reconstruction.gen.psf_gen.IntegratedPsfGenerator
+    >>> ipsfgen.psf_shape
+    (21, 21)
+    >>> type(trafo)
+    libics.tools.trafo.linear.AffineTrafo2d
+    >>> prjgen = ProjectorGenerator(
+    ...     trafo_site_to_image=trafo, integrated_psf_generator=ipsfgen
+    ... )
+    >>> prjgen.setup_cache()
+    >>> prjgen.proj_cache_built
+    True
+    >>> prjgen.generate_projector(dx=0, dy=2).shape
+    (21, 21)
+    """
+
     def __init__(
         self, trafo_site_to_image=None,
         integrated_psf_generator=None, rel_embedding_size=4
@@ -172,6 +293,9 @@ class ProjectorGenerator:
         return self.integrated_psf_generator.psf_shape
 
     def setup_cache(self, print_progress=False):
+        """
+        Sets up the cache for generating subpixel-shifted projectors.
+        """
         # Verify integrated psf generator cache
         if not self.integrated_psf_generator.psf_integrated_cache_built:
             self.integrated_psf_generator.setup_cache(
@@ -197,6 +321,19 @@ class ProjectorGenerator:
         self.proj_cache_built = True
 
     def generate_projector(self, dx=0, dy=0):
+        """
+        Gets the projector with subpixel shift.
+
+        Parameters
+        ----------
+        dx, dy : `int`
+            Projector center shift in units of fully resolved pixels.
+
+        Returns
+        -------
+        projector : `np.ndarray(2, float)`
+            Projector.
+        """
         if self.proj_cache_built:
             return self._proj_cache[dx, dy].copy()
         else:

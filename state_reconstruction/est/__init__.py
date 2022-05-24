@@ -2,7 +2,7 @@
 Estimator subpackage.
 
 Contains functions to estimate lattice transformations, point spread functions
-and occupations from fluorescence images.
+and emission states from fluorescence images.
 """
 from . import iso_est
 from . import state_est

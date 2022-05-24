@@ -1,3 +1,9 @@
+"""
+PSF generator.
+
+Generates point spread functions.
+"""
+
 import numpy as np
 import scipy.special
 
@@ -16,7 +22,27 @@ def get_psf_gaussian_width(
     focal_length=None, aperture_radius=None, numerical_aperture=0.68
 ):
     """
+    Gets the width of a Gaussian PSF of a diffraction-limited optical system.
+
     https://en.wikipedia.org/wiki/Airy_disk#Approximation_using_a_Gaussian_profile
+
+    Parameters
+    ----------
+    wavelength : `float`
+        Imaging wavelength in meter (m).
+    px_size : `float`
+        Pixel size of imaging system in meter (m). Serves as spatial unit.
+    focal_length, aperture_radius : `float`
+        Focal length and aperture radius of imaging system in meter (m).
+        Alternativ to directly specifying the `numerical_aperture`.
+    numerical_aperture : `float`
+        Numerical aperture of imaging system.
+        Takes precedence over `focal_length`/`aperture_radius`.
+
+    Returns
+    -------
+    width : `float`
+        Gaussian PSF width in units of the `px_size`.
     """
     if focal_length is not None and aperture_radius is not None:
         numerical_aperture = np.sin(np.arctan(aperture_radius / focal_length))
@@ -25,6 +51,25 @@ def get_psf_gaussian_width(
 
 
 def get_psf_gaussian(wx=5, wy=None, dx=0, dy=0, tilt=0, size=25):
+    """
+    Gets an array representing a Gaussian PSF.
+
+    Parameters
+    ----------
+    wx, wy : `float`
+        Gaussian width of PSF along the respective axes in pixels.
+    dx, dy : `float`
+        Center offset along the respective axes in pixels.
+    tilt : `float`
+        Orientation of symmetry axes in radians (rad).
+    size : `float` or `(float, float)`
+        Array size of PSF in pixels.
+
+    Returns
+    -------
+    psf : `ArrayData[2, float]`
+        Gaussian PSF array.
+    """
     if wy is None:
         wy = wx
     if np.isscalar(size):
@@ -47,7 +92,27 @@ def get_psf_airy_width(
     focal_length=None, aperture_radius=None, numerical_aperture=0.68
 ):
     """
+    Gets the width of an Airy PSF of a diffraction-limited optical system.
+
     https://www1.univap.br/irapuan/Exame/difracao/difracao.html
+
+    Parameters
+    ----------
+    wavelength : `float`
+        Imaging wavelength in meter (m).
+    px_size : `float`
+        Pixel size of imaging system in meter (m). Serves as spatial unit.
+    focal_length, aperture_radius : `float`
+        Focal length and aperture radius of imaging system in meter (m).
+        Alternativ to directly specifying the `numerical_aperture`.
+    numerical_aperture : `float`
+        Numerical aperture of imaging system.
+        Takes precedence over `focal_length`/`aperture_radius`.
+
+    Returns
+    -------
+    width : `float`
+        Airy PSF width in units of the `px_size`.
     """
     if focal_length is not None and aperture_radius is not None:
         numerical_aperture = np.sin(np.arctan(aperture_radius / focal_length))
@@ -57,6 +122,25 @@ def get_psf_airy_width(
 
 
 def get_psf_airy(wx=5, wy=None, dx=0, dy=0, size=25):
+    """
+    Gets an array representing an Airy PSF.
+
+    Parameters
+    ----------
+    wx, wy : `float`
+        Airy width of PSF along the respective axes in pixels.
+    dx, dy : `float`
+        Center offset along the respective axes in pixels.
+    tilt : `float`
+        Orientation of symmetry axes in radians (rad).
+    size : `float` or `(float, float)`
+        Array size of PSF in pixels.
+
+    Returns
+    -------
+    psf : `ArrayData[2, float]`
+        Airy PSF array.
+    """
     if wy is None:
         wy = wx
     if np.isscalar(size):
@@ -81,6 +165,24 @@ def get_psf_airy(wx=5, wy=None, dx=0, dy=0, size=25):
 
 
 def get_integrated_psf(psf, dx=0, dy=0, integration_size=5):
+    """
+    Gets a binned PSF with subpixel shift.
+
+    Parameters
+    ----------
+    psf : `Array[2, float]`
+        Fully resolved PSF array.
+    dx, dy : `int`
+        Center shift of PSF in (fully resolved) pixels.
+        Used to generate subpixel-precise binned PSFs (binned pixels).
+    integration_size : `int`
+        Binning size in (fully resolved) pixels.
+
+    Returns
+    -------
+    new_psf : `np.ndarray(2, float)`
+        Binned PSF with shape `psf.shape // integration_size`.
+    """
     if np.any(np.array(psf.shape) % integration_size != 0):
         raise ValueError("`psf.shape` must be multiple of `integration_size`")
     new_shape = np.array(psf.shape) // integration_size
@@ -120,6 +222,40 @@ def get_integrated_psf(psf, dx=0, dy=0, integration_size=5):
 
 class IntegratedPsfGenerator:
 
+    """
+    Class for generating binned PSFs.
+
+    Uses pre-calculation to allow for high-performance generation
+    of subpixel-shifted binned PSFs.
+
+    Parameters
+    ----------
+    psf : `Array[2, float]`
+        Fully resolved PSF.
+    psf_supersample : `int`
+        Binning size.
+
+    Attributes
+    ----------
+    psf_integrated_cache_built : `bool`
+        Whether the internal cache has been set up.
+
+    Examples
+    --------
+    Standard use case given a fully resolved PSF:
+
+    >>> psf.shape
+    (105, 105)
+    >>> ipsfgen = IntegratedPsfGenerator(
+    ...     psf=psf, psf_supersample=5
+    ... )
+    >>> ipsfgen.setup_cache()
+    >>> ipsfgen.psf_integrated_cache_built
+    True
+    >>> ipsfgen.generate_integrated_psf(dx=1, dy=-2).shape
+    (21, 21)
+    """
+
     def __init__(self, psf=None, psf_supersample=5):
         # Protected variables
         self._psf = None
@@ -153,6 +289,9 @@ class IntegratedPsfGenerator:
         return np.array(self.psf.shape) // self.psf_supersample
 
     def setup_cache(self, print_progress=False):
+        """
+        Sets up the cache for generating subpixel-shifted binned PSFs.
+        """
         _ss = self.psf_supersample
         _hss = _ss // 2
         self._psf_integrated = np.full((
@@ -171,6 +310,19 @@ class IntegratedPsfGenerator:
         self.psf_integrated_cache_built = True
 
     def generate_integrated_psf(self, dx=0, dy=0):
+        """
+        Gets the binned PSF with subpixel shift.
+
+        Parameters
+        ----------
+        dx, dy : `int`
+            PSF center shift in units of fully resolved pixels.
+
+        Returns
+        -------
+        integrated_psf : `np.ndarray(2, float)`
+            Normalized binned PSF.
+        """
         if self.psf_integrated_cache_built:
             return self._psf_integrated[dx, dy].copy()
         else:

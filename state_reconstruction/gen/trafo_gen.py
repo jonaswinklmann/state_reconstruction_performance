@@ -1,3 +1,9 @@
+"""
+Transformation generator.
+
+Generates affine transformations between sites and image coordinates.
+"""
+
 import numpy as np
 
 from libics.tools.trafo.linear import AffineTrafo2d
