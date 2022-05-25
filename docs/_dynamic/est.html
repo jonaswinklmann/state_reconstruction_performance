@@ -449,8 +449,13 @@ Dimensions: <cite>[n_labels, x, y]</cite>.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="state_reconstruction.est.state_est.ReconstructionResult">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.state_est.</span></span><span class="sig-name descname"><span class="pre">ReconstructionResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.state_est.ReconstructionResult" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">libics.core.io.base.FileBase</span></code></p>
 <p>State reconstruction results container.</p>
+<p class="rubric">Notes</p>
+<p>This object can be saved with all information using <code class="xref py py-meth docutils literal notranslate"><span class="pre">save()</span></code>
+in the formats <cite>“json”, “bson”</cite>.
+The (integer) state array itself can be saved using <a class="reference internal" href="#state_reconstruction.est.state_est.ReconstructionResult.save_state" title="state_reconstruction.est.state_est.ReconstructionResult.save_state"><code class="xref py py-meth docutils literal notranslate"><span class="pre">save_state()</span></code></a>
+in the formats <cite>“csv”, “txt”, “json”, “png”</cite>.</p>
 <dl class="field-list">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl>
@@ -476,10 +481,83 @@ Dimensions: <cite>[n_atoms, ndim]</cite>.</p>
 </dl>
 </dd>
 </dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.est.state_est.ReconstructionResult.attributes" title="state_reconstruction.est.state_est.ReconstructionResult.attributes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">attributes</span></code></a>()</p></td>
+<td><p>Default saved attributes getter.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code>(file_path, **kwargs)</p></td>
+<td><p>Wrapper for <code class="xref py py-func docutils literal notranslate"><span class="pre">load()</span></code> function.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code>(file_path, **kwargs)</p></td>
+<td><p>Wrapper for <code class="xref py py-func docutils literal notranslate"><span class="pre">save()</span></code> function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.est.state_est.ReconstructionResult.save_state" title="state_reconstruction.est.state_est.ReconstructionResult.save_state"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_state</span></code></a>(file_path[, fmt, flip_orientation])</p></td>
+<td><p>Saves the reconstructed state array.</p></td>
+</tr>
+</tbody>
+</table>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="state_reconstruction.est.state_est.ReconstructionResult.LOGGER">
 <span class="sig-name descname"><span class="pre">LOGGER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;Logger</span> <span class="pre">srec.ReconstructionResult</span> <span class="pre">(WARNING)&gt;</span></em><a class="headerlink" href="#state_reconstruction.est.state_est.ReconstructionResult.LOGGER" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.ReconstructionResult.attributes">
+<span class="sig-name descname"><span class="pre">attributes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.state_est.ReconstructionResult.attributes" title="Permalink to this definition"></a></dt>
+<dd><p>Default saved attributes getter.</p>
+<dl class="field-list">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl>
+<dt><strong>attrs</strong><span class="classifier"><cite>dict(str-&gt;object)</cite></span></dt><dd><p>Saved attributes dictionary mapping the attribute name
+to the attribute value.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.state_est.ReconstructionResult.save_state">
+<span class="sig-name descname"><span class="pre">save_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flip_orientation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.state_est.ReconstructionResult.save_state" title="Permalink to this definition"></a></dt>
+<dd><p>Saves the reconstructed state array.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>file_path</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>File path to save to.</p>
+</dd>
+<dt><strong>fmt</strong><span class="classifier"><cite>str</cite> or <cite>None</cite></span></dt><dd><p>File format. Options: <cite>“csv”, “txt”, “json”, “png”</cite>.
+If <cite>None</cite>, is deduced from the <cite>file_path</cite> extension.
+If deduction is unsuccessful, uses <cite>“csv”</cite> and appends the
+extension to the <cite>file_path</cite>.</p>
+</dd>
+<dt><strong>flip_orientation</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>The array orientation in this library uses the convention to
+have the coordinate axes <cite>+x -&gt; right</cite>, <cite>+y -&gt; up</cite>.
+The default orientation in the saved files have the coordinate
+axes <cite>+x -&gt; down</cite>, <cite>+y -&gt; right</cite>, thus saved files opened in
+third-party programs might appear flipped in orientation.
+Setting <cite>flip_orientation</cite> to <cite>True</cite> accounts for this flip.</p>
+</dd>
+<dt><strong>**kwargs</strong></dt><dd><p>Keyword arguments to the functions writing to file. These are:
+For <cite>“csv”, “txt”</cite>: <cite>np.savetxt</cite>.
+For <cite>“json”</cite>: <cite>json.dump</cite>.
+For <cite>“png”</cite>: <cite>PIL.Image.save</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>file_path</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>Saved file path.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

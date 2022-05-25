@@ -4,6 +4,8 @@ State estimator.
 Projects an image into site space and assigns a emission state.
 """
 
+import json
+import PIL
 import numba as nb
 import numpy as np
 import scipy.optimize
@@ -11,6 +13,7 @@ import scipy.special
 
 from libics.env.logging import get_logger
 from libics.core.data.arrays import ArrayData
+from libics.core import io
 from libics.tools.math.signal import find_peaks_1d
 
 from state_reconstruction.gen import trafo_gen
@@ -262,7 +265,7 @@ def get_state_estimate(emissions, thresholds):
 ###############################################################################
 
 
-class ReconstructionResult:
+class ReconstructionResult(io.FileBase):
 
     """
     State reconstruction results container.
@@ -288,6 +291,13 @@ class ReconstructionResult:
         False negative/positive number at thresholds.
     hist_emission_num : `[int, int, int]`
         Number of sites associated to each state.
+
+    Notes
+    -----
+    This object can be saved with all information using :py:meth:`save`
+    in the formats `"json", "bson"`.
+    The (integer) state array itself can be saved using :py:meth:`save_state`
+    in the formats `"csv", "txt", "json", "png"`.
     """
 
     _attributes = {
@@ -303,6 +313,65 @@ class ReconstructionResult:
             if k not in self._attributes:
                 self.LOGGER.warn(f"Invalid attribute: {str(k)}")
             setattr(self, k, v)
+
+    def attributes(self):
+        return {k: getattr(self, k) for k in self._attributes}
+
+    def save_state(
+        self, file_path, fmt=None, flip_orientation=False, **kwargs
+    ):
+        """
+        Saves the reconstructed state array.
+
+        Parameters
+        ----------
+        file_path : `str`
+            File path to save to.
+        fmt : `str` or `None`
+            File format. Options: `"csv", "txt", "json", "png"`.
+            If `None`, is deduced from the `file_path` extension.
+            If deduction is unsuccessful, uses `"csv"` and appends the
+            extension to the `file_path`.
+        flip_orientation : `bool`
+            The array orientation in this library uses the convention to
+            have the coordinate axes `+x -> right`, `+y -> up`.
+            The default orientation in the saved files have the coordinate
+            axes `+x -> down`, `+y -> right`, thus saved files opened in
+            third-party programs might appear flipped in orientation.
+            Setting `flip_orientation` to `True` accounts for this flip.
+        **kwargs
+            Keyword arguments to the functions writing to file. These are:
+            For `"csv", "txt"`: `np.savetxt`.
+            For `"json"`: `json.dump`.
+            For `"png"`: `PIL.Image.save`.
+
+        Returns
+        -------
+        file_path : `str`
+            Saved file path.
+        """
+        if fmt is None:
+            try:
+                fmt = io.get_file_format(file_path, fmt=fmt)
+            except KeyError:
+                fmt = "csv"
+                file_path = file_path + "." + fmt
+        ar = np.array(self.state, dtype=np.uint8)
+        if flip_orientation:
+            ar = np.transpose(ar)
+            ar = np.flip(ar, axis=1)
+        if "csv" in fmt or "txt" in fmt:
+            if "delimiter" not in kwargs:
+                kwargs["delimiter"] = ","
+            np.savetxt(file_path, ar, **kwargs)
+        elif "json" in fmt:
+            with open(file_path, "w") as _f:
+                json.dump(list(ar), _f, **kwargs)
+        elif "png" in fmt:
+            PIL.Image.fromarray(ar).save(file_path, format=fmt, **kwargs)
+        else:
+            raise RuntimeError(f"Invalid file format ({str(fmt)})")
+        return file_path
 
 
 class StateEstimator:
