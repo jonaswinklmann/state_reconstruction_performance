@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>state_reconstruction.est &mdash; libics 1.0a documentation</title>
+  <title>state_reconstruction.est &mdash; state_reconstruction 0.1a documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -26,10 +26,10 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> libics
+            <a href="../index.html" class="icon icon-home"> state_reconstruction
           </a>
               <div class="version">
-                1.0
+                0.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -44,6 +44,7 @@
 <li class="toctree-l1"><a class="reference internal" href="gen.html">state_reconstruction.gen</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">state_reconstruction.est</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#module-state_reconstruction.est.iso_est">iso_est</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-state_reconstruction.est.psf_est">psf_est</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-state_reconstruction.est.state_est">state_est</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-state_reconstruction.est.trafo_est">trafo_est</a></li>
 </ul>
@@ -56,7 +57,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../index.html">libics</a>
+          <a href="../index.html">state_reconstruction</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -176,106 +177,6 @@ Dimensions: <cite>[n_labels, ndim]</cite>.</p>
 
 </dd></dl>
 
-<dl class="py class">
-<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.SupersamplePsfEstimator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.iso_est.</span></span><span class="sig-name descname"><span class="pre">SupersamplePsfEstimator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf_supersample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.SupersamplePsfEstimator" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#state_reconstruction.est.iso_est.IsolatedLocator" title="state_reconstruction.est.iso_est.IsolatedLocator"><code class="xref py py-class docutils literal notranslate"><span class="pre">state_reconstruction.est.iso_est.IsolatedLocator</span></code></a></p>
-<p>Class for estimating a subpixel PSF.</p>
-<p>Using multiple sparse images, the fluorescence image of isolated atoms
-is used to estimate the PSF by supersampling and subpixel alignment.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>psf_supersample</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Supersampling size.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<p>Standard use case given a binned initial-guess PSF and multiple images:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">guess_psf_integr</span><span class="o">.</span><span class="n">shape</span>
-<span class="go">(21, 21)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">images</span><span class="o">.</span><span class="n">shape</span>
-<span class="go">(10, 512, 512)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">psfest</span> <span class="o">=</span> <span class="n">SupersamplePsfEstimator</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">psf_integrated</span><span class="o">=</span><span class="n">guess_psf_integr</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">psf_supersample</span><span class="o">=</span><span class="mi">5</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">psfest</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">psfest</span><span class="o">.</span><span class="n">get_psf</span><span class="p">(</span><span class="o">*</span><span class="n">images</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
-<span class="go">(105, 105)</span>
-</pre></div>
-</div>
-<p class="rubric">Methods</p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_label_centers</span></code>(image[, remove_nan])</p></td>
-<td><p>Gets the centers of isolated atoms from an image.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_label_regions" title="state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_label_regions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_label_regions</span></code></a>(image[, normalize, remove_nan])</p></td>
-<td><p>Gets a list of supersampled and subpixel-aligned image subregions.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_psf" title="state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_psf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_psf</span></code></a>(*images[, print_progress])</p></td>
-<td><p>Gets the estimated subpixel PSF from sparse images.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup</span></code>()</p></td>
-<td><p>Fits a Gaussian to the PSF to determine the label subregion size.</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_label_regions">
-<span class="sig-name descname"><span class="pre">get_label_regions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_label_regions" title="Permalink to this definition"></a></dt>
-<dd><p>Gets a list of supersampled and subpixel-aligned image subregions.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Original image.</p>
-</dd>
-<dt><strong>normalize</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to normalize each returned image subregion.</p>
-</dd>
-<dt><strong>remove_nan</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to remove all invalid subregions.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl>
-<dt><strong>label_regions</strong><span class="classifier"><cite>np.ndarray(3, float)</cite></span></dt><dd><p>Subpixel-aligned supersampled image subregions.
-Dimensions: <cite>[n_labels, x, y]</cite>.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_psf">
-<span class="sig-name descname"><span class="pre">get_psf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">images</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_psf" title="Permalink to this definition"></a></dt>
-<dd><p>Gets the estimated subpixel PSF from sparse images.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>*images</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Fluorescence images of well-separated atoms.</p>
-</dd>
-<dt><strong>print_progress</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to print a progress bar.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl>
-<dt><strong>label_region</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Estimated subpixel PSF.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
 <dl class="py function">
 <dt class="sig sig-object py" id="state_reconstruction.est.iso_est.apply_filter">
 <span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.iso_est.</span></span><span class="sig-name descname"><span class="pre">apply_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.apply_filter" title="Permalink to this definition"></a></dt>
@@ -325,35 +226,6 @@ center of mass (relative to <cite>im_size</cite>).</p>
 <dt><strong>label_centers</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Fitted Gaussian center of labelled areas. Labels for which
 the fit failed have a label center of <cite>(np.nan, np.nan)</cite>.
 Dimensions: <cite>[n_labels, ndim]</cite>.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="state_reconstruction.est.iso_est.find_label_regions_subpixel">
-<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.iso_est.</span></span><span class="sig-name descname"><span class="pre">find_label_regions_subpixel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">region_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supersample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.iso_est.find_label_regions_subpixel" title="Permalink to this definition"></a></dt>
-<dd><p>Get subpixel-aligned supersampled subregions.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
-<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Original image.</p>
-</dd>
-<dt><strong>label_centers</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>(Fractional) label centers. Dimensions: <cite>[n_labels, ndim]</cite>.</p>
-</dd>
-<dt><strong>region_size</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Subregion size in original pixels.</p>
-</dd>
-<dt><strong>supersample</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Supersampling.</p>
-</dd>
-<dt><strong>normalize</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to normalize each subregion image.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl>
-<dt><strong>label_regions</strong><span class="classifier"><cite>np.ndarray(3, float)</cite></span></dt><dd><p>Subpixel-aligned supersampled image subregions.
-Dimensions: <cite>[n_labels, x, y]</cite>.</p>
 </dd>
 </dl>
 </dd>
@@ -427,6 +299,142 @@ between the peaks are set to <cite>True</cite>.</p>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><dl>
 <dt><strong>mask</strong><span class="classifier"><cite>np.ndarray(2, bool)</cite></span></dt><dd><p>Mask array.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-state_reconstruction.est.psf_est">
+<span id="psf-est"></span><h2>psf_est<a class="headerlink" href="#module-state_reconstruction.est.psf_est" title="Permalink to this headline"></a></h2>
+<p>Subpixel PSF estimator.</p>
+<p>Uses images of isolated atoms to find a subpixel point spread function.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="state_reconstruction.est.psf_est.SupersamplePsfEstimator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.psf_est.</span></span><span class="sig-name descname"><span class="pre">SupersamplePsfEstimator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf_supersample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf_interpolation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'linear'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.psf_est.SupersamplePsfEstimator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#state_reconstruction.est.iso_est.IsolatedLocator" title="state_reconstruction.est.iso_est.IsolatedLocator"><code class="xref py py-class docutils literal notranslate"><span class="pre">state_reconstruction.est.iso_est.IsolatedLocator</span></code></a></p>
+<p>Class for estimating a subpixel PSF.</p>
+<p>Using multiple sparse images, the fluorescence image of isolated atoms
+is used to estimate the PSF by supersampling and subpixel alignment.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>psf_supersample</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Supersampling size.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Standard use case given a binned initial-guess PSF and multiple images:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">guess_psf_integr</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(21, 21)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">images</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(10, 512, 512)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">psfest</span> <span class="o">=</span> <span class="n">SupersamplePsfEstimator</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">psf_integrated</span><span class="o">=</span><span class="n">guess_psf_integr</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">psf_supersample</span><span class="o">=</span><span class="mi">5</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">psfest</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">psfest</span><span class="o">.</span><span class="n">get_psf</span><span class="p">(</span><span class="o">*</span><span class="n">images</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(105, 105)</span>
+</pre></div>
+</div>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_label_centers</span></code>(image[, remove_nan])</p></td>
+<td><p>Gets the centers of isolated atoms from an image.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.est.psf_est.SupersamplePsfEstimator.get_label_regions" title="state_reconstruction.est.psf_est.SupersamplePsfEstimator.get_label_regions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_label_regions</span></code></a>(image[, normalize, remove_nan])</p></td>
+<td><p>Gets a list of supersampled and subpixel-aligned image subregions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.est.psf_est.SupersamplePsfEstimator.get_psf" title="state_reconstruction.est.psf_est.SupersamplePsfEstimator.get_psf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_psf</span></code></a>(*images[, print_progress])</p></td>
+<td><p>Gets the estimated subpixel PSF from sparse images.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup</span></code>()</p></td>
+<td><p>Fits a Gaussian to the PSF to determine the label subregion size.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.psf_est.SupersamplePsfEstimator.get_label_regions">
+<span class="sig-name descname"><span class="pre">get_label_regions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.psf_est.SupersamplePsfEstimator.get_label_regions" title="Permalink to this definition"></a></dt>
+<dd><p>Gets a list of supersampled and subpixel-aligned image subregions.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Original image.</p>
+</dd>
+<dt><strong>normalize</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to normalize each returned image subregion.</p>
+</dd>
+<dt><strong>remove_nan</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to remove all invalid subregions.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>label_regions</strong><span class="classifier"><cite>np.ndarray(3, float)</cite></span></dt><dd><p>Subpixel-aligned supersampled image subregions.
+Dimensions: <cite>[n_labels, x, y]</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.est.psf_est.SupersamplePsfEstimator.get_psf">
+<span class="sig-name descname"><span class="pre">get_psf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">images</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.psf_est.SupersamplePsfEstimator.get_psf" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the estimated subpixel PSF from sparse images.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>*images</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Fluorescence images of well-separated atoms.</p>
+</dd>
+<dt><strong>print_progress</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to print a progress bar.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>label_region</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Estimated subpixel PSF.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.est.psf_est.find_label_regions_subpixel">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.est.psf_est.</span></span><span class="sig-name descname"><span class="pre">find_label_regions_subpixel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">region_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supersample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interpolation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'linear'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.est.psf_est.find_label_regions_subpixel" title="Permalink to this definition"></a></dt>
+<dd><p>Get subpixel-aligned supersampled subregions.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>image</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Original image.</p>
+</dd>
+<dt><strong>label_centers</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>(Fractional) label centers. Dimensions: <cite>[n_labels, ndim]</cite>.</p>
+</dd>
+<dt><strong>region_size</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Subregion size in original pixels.</p>
+</dd>
+<dt><strong>supersample</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Supersampling.</p>
+</dd>
+<dt><strong>interpolation</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>Supersampling interpolation. Options: <cite>“nearest”, “linear”</cite>.</p>
+</dd>
+<dt><strong>normalize</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to normalize each subregion image.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>label_regions</strong><span class="classifier"><cite>np.ndarray(3, float)</cite></span></dt><dd><p>Subpixel-aligned supersampled image subregions.
+Dimensions: <cite>[n_labels, x, y]</cite>.</p>
 </dd>
 </dl>
 </dd>
@@ -1084,7 +1092,7 @@ See <a class="reference internal" href="#state_reconstruction.est.trafo_est.get_
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2019-2021, David Wei.</p>
+    <p>&#169; Copyright 2019-2022, David Wei.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

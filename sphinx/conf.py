@@ -14,19 +14,20 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('..'))
-sys.path.insert(0, os.path.abspath('../libics'))
+sys.path.insert(0, os.path.abspath('../state_reconstruction'))
+from version import __version__, short_version
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'libics'
-copyright = '2019-2021, David Wei'
+project = 'state_reconstruction'
+copyright = '2019-2022, David Wei'
 author = 'David Wei'
 
 # The short X.Y version
-version = '1.0'
+version = short_version
 # The full version, including alpha/beta/rc tags
-release = '1.0a'
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -88,7 +89,7 @@ html_theme = 'sphinx_rtd_theme'  # 'classic'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = []
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -104,7 +105,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'libics_doc'
+htmlhelp_basename = 'state_reconstruction_doc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -131,7 +132,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'libics.tex', 'libics documentation', 'libics', 'manual'),
+    (master_doc, 'state_reconstruction.tex', 'state_reconstruction documentation', 'state_reconstruction', 'manual'),
 ]
 
 
@@ -140,7 +141,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'libics', 'libics documentation',
+    (master_doc, 'state_reconstruction', 'state_reconstruction documentation',
      [author], 1)
 ]
 
@@ -151,7 +152,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'libics', 'libics Documentation',
-     author, 'libics', 'Experiment control and analysis.',
+    (master_doc, 'state_reconstruction', 'state_reconstruction Documentation',
+     author, 'state_reconstruction', 'Quantum state reconstruction from atomic fluorescence images.',
      'measurement, analysis'),
 ]

@@ -15,6 +15,7 @@ from .gen.image_gen import ImageGenerator
 from .gen.proj_gen import ProjectorGenerator
 
 # Estimators
-from .est.iso_est import IsolatedLocator, SupersamplePsfEstimator
+from .est.iso_est import IsolatedLocator
+from .est.psf_est import SupersamplePsfEstimator
 from .est.trafo_est import TrafoEstimator
 from .est.state_est import StateEstimator, ReconstructionResult

@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+from .state_reconstruction.version import __version__
 
 
 def readme():
@@ -7,8 +8,8 @@ def readme():
 
 
 setup(name='state_reconstruction',
-      version='0.1a',
-      description='State reconstruction library',
+      version=__version__,
+      description='Quantum state reconstruction library',
       long_description=readme(),
       classifiers=[
             'Development Status :: 2 - Pre-Alpha',

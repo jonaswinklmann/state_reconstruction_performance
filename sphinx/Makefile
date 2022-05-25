@@ -5,7 +5,7 @@
 # from the environment for the first two.
 SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
-SPHINXPROJ	  = libics
+SPHINXPROJ	  = state_reconstruction
 SOURCEDIR     = .
 BUILDDIR      = _build
 

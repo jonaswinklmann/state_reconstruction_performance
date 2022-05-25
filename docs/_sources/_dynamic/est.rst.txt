@@ -14,6 +14,14 @@ iso_est
     :undoc-members:
     :show-inheritance:
 
+psf_est
+-------
+
+.. automodule:: state_reconstruction.est.psf_est
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 state_est
 ---------
 

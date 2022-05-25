@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; libics 1.0a documentation</title>
+  <title>Index &mdash; state_reconstruction 0.1a documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -24,10 +24,10 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> libics
+            <a href="index.html" class="icon icon-home"> state_reconstruction
           </a>
               <div class="version">
-                1.0
+                0.1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -49,7 +49,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">libics</a>
+          <a href="index.html">state_reconstruction</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -110,7 +110,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_dynamic/est.html#state_reconstruction.est.iso_est.find_label_centers_gaussian">find_label_centers_gaussian() (in module state_reconstruction.est.iso_est)</a>
 </li>
-      <li><a href="_dynamic/est.html#state_reconstruction.est.iso_est.find_label_regions_subpixel">find_label_regions_subpixel() (in module state_reconstruction.est.iso_est)</a>
+      <li><a href="_dynamic/est.html#state_reconstruction.est.psf_est.find_label_regions_subpixel">find_label_regions_subpixel() (in module state_reconstruction.est.psf_est)</a>
 </li>
       <li><a href="_dynamic/est.html#state_reconstruction.est.iso_est.find_labels">find_labels() (in module state_reconstruction.est.iso_est)</a>
 </li>
@@ -150,7 +150,7 @@
 </li>
       <li><a href="_dynamic/est.html#state_reconstruction.est.iso_est.IsolatedLocator.get_label_centers">get_label_centers() (state_reconstruction.est.iso_est.IsolatedLocator method)</a>
 </li>
-      <li><a href="_dynamic/est.html#state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_label_regions">get_label_regions() (state_reconstruction.est.iso_est.SupersamplePsfEstimator method)</a>
+      <li><a href="_dynamic/est.html#state_reconstruction.est.psf_est.SupersamplePsfEstimator.get_label_regions">get_label_regions() (state_reconstruction.est.psf_est.SupersamplePsfEstimator method)</a>
 </li>
       <li><a href="_dynamic/est.html#state_reconstruction.est.state_est.get_local_images">get_local_images() (in module state_reconstruction.est.state_est)</a>
 </li>
@@ -168,7 +168,7 @@
 </li>
       <li><a href="_dynamic/gen.html#state_reconstruction.gen.proj_gen.get_projector">get_projector() (in module state_reconstruction.gen.proj_gen)</a>
 </li>
-      <li><a href="_dynamic/est.html#state_reconstruction.est.iso_est.SupersamplePsfEstimator.get_psf">get_psf() (state_reconstruction.est.iso_est.SupersamplePsfEstimator method)</a>
+      <li><a href="_dynamic/est.html#state_reconstruction.est.psf_est.SupersamplePsfEstimator.get_psf">get_psf() (state_reconstruction.est.psf_est.SupersamplePsfEstimator method)</a>
 </li>
       <li><a href="_dynamic/gen.html#state_reconstruction.gen.psf_gen.get_psf_airy">get_psf_airy() (in module state_reconstruction.gen.psf_gen)</a>
 </li>
@@ -234,11 +234,11 @@
     module
 
       <ul>
-        <li><a href="index.html#module-state_reconstruction">state_reconstruction</a>
-</li>
         <li><a href="_dynamic/est.html#module-state_reconstruction.est">state_reconstruction.est</a>
 </li>
         <li><a href="_dynamic/est.html#module-state_reconstruction.est.iso_est">state_reconstruction.est.iso_est</a>
+</li>
+        <li><a href="_dynamic/est.html#module-state_reconstruction.est.psf_est">state_reconstruction.est.psf_est</a>
 </li>
         <li><a href="_dynamic/est.html#module-state_reconstruction.est.state_est">state_reconstruction.est.state_est</a>
 </li>
@@ -318,13 +318,6 @@
 </li>
       </ul></li>
       <li>
-    state_reconstruction
-
-      <ul>
-        <li><a href="index.html#module-state_reconstruction">module</a>
-</li>
-      </ul></li>
-      <li>
     state_reconstruction.est
 
       <ul>
@@ -336,6 +329,13 @@
 
       <ul>
         <li><a href="_dynamic/est.html#module-state_reconstruction.est.iso_est">module</a>
+</li>
+      </ul></li>
+      <li>
+    state_reconstruction.est.psf_est
+
+      <ul>
+        <li><a href="_dynamic/est.html#module-state_reconstruction.est.psf_est">module</a>
 </li>
       </ul></li>
       <li>
@@ -391,7 +391,7 @@
       </ul></li>
       <li><a href="_dynamic/est.html#state_reconstruction.est.state_est.StateEstimator">StateEstimator (class in state_reconstruction.est.state_est)</a>
 </li>
-      <li><a href="_dynamic/est.html#state_reconstruction.est.iso_est.SupersamplePsfEstimator">SupersamplePsfEstimator (class in state_reconstruction.est.iso_est)</a>
+      <li><a href="_dynamic/est.html#state_reconstruction.est.psf_est.SupersamplePsfEstimator">SupersamplePsfEstimator (class in state_reconstruction.est.psf_est)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -417,7 +417,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2019-2021, David Wei.</p>
+    <p>&#169; Copyright 2019-2022, David Wei.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

@@ -9,7 +9,7 @@ if "%SPHINXBUILD%" == "" (
 )
 set SOURCEDIR=.
 set BUILDDIR=_build
-set SPHINXPROJ=libics
+set SPHINXPROJ=state_reconstruction
 
 if "%1" == "" goto help
 
