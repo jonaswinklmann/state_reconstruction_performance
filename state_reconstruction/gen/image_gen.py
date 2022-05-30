@@ -283,8 +283,6 @@ def get_image_clean(
     """
     if np.isscalar(size):
         size = (size, size)
-    if np.isscalar(brightness):
-        brightness = np.full_like(X, brightness)
     if local_psfs is None:
         if X is None or Y is None or psf is None:
             raise ValueError("invalid parameters")
@@ -293,6 +291,8 @@ def get_image_clean(
         )
     else:
         lpsfs = local_psfs
+    if np.isscalar(brightness):
+        brightness = np.full_like(lpsfs["X_min"], brightness)
     integrated_psfs = lpsfs["psf"]
     X_min, X_max = lpsfs["X_min"], lpsfs["X_max"]
     Y_min, Y_max = lpsfs["Y_min"], lpsfs["Y_max"]

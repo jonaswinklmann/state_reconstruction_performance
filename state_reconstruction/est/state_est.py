@@ -128,39 +128,22 @@ def _erf_probability(x, x0, wx):
 
 
 def get_emission_histogram(
-    emissions, min_peak_rel_dist=2, bin_range=None
+    emissions, bin_range=None
 ):
     """
-    Gets state discrimination thresholds from projected images.
-
-    Uses a histogram to find two or three peaks. The thresholds are set
-    by setting equal false negativer/positive rates.
+    Generates a histogram from the projected images.
 
     Parameters
     ----------
     emissions : `Array[1, float]`
         Projected image subregions.
-    min_peak_rel_dist : `int`
-        If the spacing between the first two peaks is smaller than
-        the product of background peak width and `min_peak_rel_dist`,
-        an error is raised.
     bin_range : `None` or `(float, float)`
         Bin range used to obtain the histogram.
 
     Returns
     -------
-    ret : `dict(str->Any)`
-        Returns a dictionary containing the following items:
-    histogram : `ArrayData(1, float)`
+    hist : `ArrayData(1, float)`
         Projected image histogram.
-    center : `[float, float, float]`
-        Peak centers.
-    threshold : `[float, float]`
-        State thresholds.
-    error_num : `[float, float]`
-        False positive/negative counts at first/second threshold.
-    emission_num : `[float, float, float]`
-        Number of sites mapped to the different states.
     """
     emissions = np.ravel(np.array(emissions))
     # Create histogram
@@ -177,6 +160,38 @@ def get_emission_histogram(
     hist.set_data_quantity(name="histogram")
     hist.set_dim(0, points=_c)
     hist.set_var_quantity(0, name="projected emission")
+    return hist
+
+
+def analyze_emission_histogram(hist, min_peak_rel_dist=2):
+    """
+    Gets state discrimination thresholds from projected images.
+
+    Uses the histogram to find two or three peaks. The thresholds are set
+    by setting equal false negativer/positive rates.
+
+    Parameters
+    ----------
+    hist : `ArrayData(1, float)`
+        Projected image histogram.
+    min_peak_rel_dist : `int`
+        If the spacing between the first two peaks is smaller than
+        the product of background peak width and `min_peak_rel_dist`,
+        an error is raised.
+
+    Returns
+    -------
+    ret : `dict(str->Any)`
+        Returns a dictionary containing the following items:
+    center : `[float, float, float]`
+        Peak centers.
+    threshold : `[float, float]`
+        State thresholds.
+    error_num : `[float, float]`
+        False positive/negative counts at first/second threshold.
+    emission_num : `[float, float, float]`
+        Number of sites mapped to the different states.
+    """
     # Find histogram peaks
     peaks = find_peaks_1d(
         hist, npeaks=3, rel_prominence=0, base_prominence_ratio=0.1,
@@ -188,10 +203,6 @@ def get_emission_histogram(
         < peaks["center"][0] + peaks["width"][0] * min_peak_rel_dist
     ):
         raise RuntimeError("background peak stronger than signal peak")
-    has_second_peak = (len(peaks["center"]) == 3)
-    if has_second_peak:
-        if peaks["center"][2] < peaks["center"][1] + peaks["width"][1]:
-            has_second_peak = False
     # Separate peaks by minimizing errors
     a0, a1 = [_fit.a for _fit in peaks["fit"][:2]]
     x0, x1 = [_x for _x in peaks["center"][:2]]
@@ -201,10 +212,15 @@ def get_emission_histogram(
         args=(a0, a1, x0, x1, w0, w1)
     )
     x01 = x01_res.x[0]
+    # Handle second peak
+    has_second_peak = (len(peaks["center"]) == 3)
+    if has_second_peak:
+        if peaks["center"][2] - x1 < x1 - x01:
+            has_second_peak = False
     if has_second_peak:
         a2, x2, w2 = peaks["fit"][2].a, peaks["center"][2], peaks["width"][2]
         x12_res = scipy.optimize.minimize(
-            _double_erf_overlap, np.mean([x0, x1]),
+            _double_erf_overlap, np.mean([x1, x2]),
             args=(a1, a2, x1, x2, w1, w2)
         )
         x12 = x12_res.x[0]
@@ -217,13 +233,13 @@ def get_emission_histogram(
         err12 = a2 * _erf_probability(x12, x2, w2)
     else:
         err12 = a1 * (1 - _erf_probability(x12, x1, w1))
-    emissions_num0 = np.count_nonzero(emissions < x01)
-    emissions_num1 = np.count_nonzero(
-        (emissions >= x01) & (emissions <= x12)
-    )
-    emissions_num2 = np.count_nonzero(emissions > x12)
+    _h = np.array(hist)
+    emissions_num0 = np.sum(_h[hist.get_points(0) < x01])
+    emissions_num1 = np.sum(_h[
+        (hist.get_points(0) >= x01) & (hist.get_points(0) <= x12)
+    ])
+    emissions_num2 = np.sum(_h[hist.get_points(0) > x12])
     return {
-        "histogram": hist,
         "center": [x0, x1, x2],
         "threshold": [x01, x12],
         "error_num": [err01, err12],
@@ -303,12 +319,14 @@ class ReconstructionResult(io.FileBase):
     _attributes = {
         "trafo", "emissions", "state", "label_center",
         "histogram", "hist_center", "hist_threshold",
-        "hist_error_num", "hist_emission_num"
+        "hist_error_num", "hist_emission_num", "success"
     }
 
     LOGGER = get_logger("srec.ReconstructionResult")
 
     def __init__(self, **kwargs):
+        for k in self._attributes:
+            setattr(self, k, None)
         for k, v in kwargs.items():
             if k not in self._attributes:
                 self.LOGGER.warn(f"Invalid attribute: {str(k)}")
@@ -389,6 +407,8 @@ class StateEstimator:
     trafo_site_to_image : `AffineTrafo2d`
         Transformation between sites and image coordinates.
         Its phase is optimized for each image individually.
+    phase_ref_site, phase_ref_image : `(float, float)`
+        Transformation phase reference points in sites and image space.
     sites_shape : `(int, int)`
         Shape of 2D array representing lattice sites.
 
@@ -423,10 +443,13 @@ class StateEstimator:
         projector_generator=None,
         isolated_locator=None,
         trafo_site_to_image=None,
+        phase_ref_site=(0, 0), phase_ref_image=(169, 84),
         sites_shape=(170, 170)
     ):
         self.projector_generator = projector_generator
         self.isolated_locator = isolated_locator
+        self.phase_ref_site = phase_ref_site
+        self.phase_ref_image = phase_ref_image
         self.trafo_site_to_image = trafo_site_to_image
         self.sites_shape = sites_shape
 
@@ -455,7 +478,9 @@ class StateEstimator:
     @trafo_site_to_image.setter
     def trafo_site_to_image(self, val):
         self._trafo_site_to_image = trafo_gen.get_trafo_site_to_image(
-            trafo_site_to_image=val, phase=np.zeros(2)
+            trafo_site_to_image=val, phase=np.zeros(2),
+            phase_ref_site=self.phase_ref_site,
+            phase_ref_image=self.phase_ref_image
         )
 
     @property
@@ -500,7 +525,9 @@ class StateEstimator:
                     f"Using default phase: {str(phase)}"
                 )
             new_trafo = trafo_gen.get_trafo_site_to_image(
-                trafo_site_to_image=self.trafo_site_to_image, phase=phase
+                trafo_site_to_image=self.trafo_site_to_image, phase=phase,
+                phase_ref_site=self.phase_ref_site,
+                phase_ref_image=self.phase_ref_image
             )
         # Construct local images
         emissions = ArrayData(np.zeros(self.sites_shape, dtype=float))
@@ -524,17 +551,30 @@ class StateEstimator:
         )
         emissions.data[emissions_mask] = local_emissions
         # Perform histogram analysis for state discrimination
-        histogram_data = get_emission_histogram(local_emissions)
+        histogram = get_emission_histogram(local_emissions)
+        try:
+            histogram_data = analyze_emission_histogram(histogram)
+            state = get_state_estimate(emissions, histogram_data["threshold"])
+            state_estimation_success = True
+        except RuntimeError:
+            self.LOGGER.error("emission histogram analysis failed")
+            histogram_data = None
+            state_estimation_success = False
         # Package result
-        res = ReconstructionResult(
+        res = dict(
             trafo=new_trafo,
             emissions=emissions,
             label_center=label_centers,
-            histogram=histogram_data["histogram"],
-            hist_center=histogram_data["center"],
-            hist_threshold=histogram_data["threshold"],
-            hist_error_num=histogram_data["error_num"],
-            hist_emission_num=histogram_data["emission_num"],
-            state=get_state_estimate(emissions, histogram_data["threshold"])
+            histogram=histogram,
+            success=state_estimation_success
         )
+        if state_estimation_success:
+            res.update(dict(
+                hist_center=histogram_data["center"],
+                hist_threshold=histogram_data["threshold"],
+                hist_error_num=histogram_data["error_num"],
+                hist_emission_num=histogram_data["emission_num"],
+                state=state
+            ))
+        res = ReconstructionResult(**res)
         return res
