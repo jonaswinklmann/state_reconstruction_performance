@@ -484,6 +484,10 @@ class StateEstimator:
         )
 
     @property
+    def proj_shape(self):
+        return self.projector_generator.proj_shape
+
+    @property
     def psf_shape(self):
         return self.projector_generator.psf_shape
 
@@ -533,8 +537,8 @@ class StateEstimator:
         emissions = ArrayData(np.zeros(self.sites_shape, dtype=float))
         emissions_coord = emissions.get_var_meshgrid()
         image_rect = np.array([
-            [0+self.psf_shape[i], image.shape[i]-self.psf_shape[i]-1]
-            for i in range(len(self.psf_shape))
+            [0+self.proj_shape[i], image.shape[i]-self.proj_shape[i]-1]
+            for i in range(len(self.proj_shape))
         ])
         emissions_mask = new_trafo.get_mask_origin_coords_within_target_rect(
             np.moveaxis(emissions_coord, 0, -1), rect=image_rect
@@ -542,7 +546,7 @@ class StateEstimator:
         rec_coord_sites = emissions_coord[:, emissions_mask]
         rec_coord_image = new_trafo.coord_to_target(rec_coord_sites.T).T
         local_images = get_local_images(
-            *rec_coord_image, image, self.psf_shape,
+            *rec_coord_image, image, self.proj_shape,
             psf_supersample=self.psf_supersample
         )
         # Apply projectors and embed local images
@@ -556,7 +560,7 @@ class StateEstimator:
             histogram_data = analyze_emission_histogram(histogram)
             state = get_state_estimate(emissions, histogram_data["threshold"])
             state_estimation_success = True
-        except RuntimeError:
+        except (RuntimeError, IndexError):
             self.LOGGER.error("emission histogram analysis failed")
             histogram_data = None
             state_estimation_success = False

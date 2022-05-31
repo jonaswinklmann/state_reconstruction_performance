@@ -168,7 +168,8 @@ def get_embedded_projectors(embedded_psfs):
 
 def get_projector(
     trafo_site_to_image, integrated_psf_generator,
-    dx=0, dy=0, rel_embedding_size=4
+    dx=0, dy=0, rel_embedding_size=4, normalize=True,
+    proj_shape=None, proj_fidelity=None, ret_proj_fidelity=False
 ):
     """
     Gets the projector associated with a subpixel-shifted binned PSF.
@@ -185,15 +186,34 @@ def get_projector(
         Size of the image in which the projector is calculated,
         where the `rel_embedding_size` specifies this size with respect to
         the binned PSF size.
+    normalize : `bool`
+        Whether to normalize the projector.
+    proj_shape : `(int, int)`
+        Returned projector shape. Overwrites `proj_fidelity`.
+        If `None`, deduces shape from `proj_fidelity`.
+    proj_fidelity : `float`
+        Adjusts the projector shape such that the projector fidelity
+        is above `proj_fidelity`.
+        If both `proj_shape` and `proj_fidelity` are `None`,
+        the projector shape corresponds to the integrated PSF shape.
+    ret_proj_fidelity : `bool`
+        Whether to return the projector fidelity.
+        The projector fidelity is defined as the absolute value contained
+        in the cropped ROI in relative to the full projector.
 
     Returns
     -------
     center_proj : `np.ndarray(2, float)`
         Projector. Dimensions: `[n_binned_psf, n_binned_psf]`
+    proj_fidelity : `float`
+        If `ret_proj_fidelity` is set, returns the projector fidelity.
     """
     center_shift = (
         np.array([dx, dy]) / integrated_psf_generator.psf_supersample
     )
+    if proj_fidelity is not None:
+        if proj_fidelity <= 0 or proj_fidelity > 1:
+            raise ValueError("Invalid `proj_fidelity`")
     # Center trafo
     centered_trafo = copy.deepcopy(trafo_site_to_image)
     centered_trafo.offset = np.zeros(2)
@@ -210,17 +230,42 @@ def get_projector(
     embedded_psfs = get_embedded_local_psfs(
         local_psfs,
         offset=-embedding_size//2,
-        size=embedding_size+1,
+        size=embedding_size,
         normalize=True
     )
     # Get projectors
     embedded_projs = get_embedded_projectors(embedded_psfs)
-    roi = misc.cv_index_center_to_slice(
-        np.array(embedded_psfs.shape[1:]) // 2,
-        size=integrated_psf_generator.psf_shape
-    )
+    # Crop central projector
+    if proj_shape is None and proj_fidelity is None:
+        proj_shape = integrated_psf_generator.psf_shape
+    if proj_shape is not None:
+        roi = misc.cv_index_center_to_slice(
+            np.array(embedded_psfs.shape[1:]) // 2, proj_shape
+        )
+    else:
+        _fidelity = 0
+        _shape = np.array(integrated_psf_generator.psf_shape)
+        _shape = _shape - np.min(_shape) + 1
+        _denominator = np.sum(np.abs(embedded_projs[center_idx]))
+        while _fidelity < proj_fidelity:
+            roi = misc.cv_index_center_to_slice(
+                np.array(embedded_psfs.shape[1:]) // 2, _shape
+            )
+            _fidelity = (
+                np.sum(np.abs(embedded_projs[center_idx][roi])) / _denominator
+            )
+            _shape += 1
     center_proj = embedded_projs[center_idx][roi]
-    return center_proj
+    proj_fidelity = (
+        np.sum(np.abs(embedded_projs[center_idx][roi]))
+        / np.sum(np.abs(embedded_projs[center_idx]))
+    )
+    if normalize:
+        center_proj /= np.sum(center_proj)
+    if ret_proj_fidelity:
+        return center_proj, proj_fidelity
+    else:
+        return center_proj
 
 
 ###############################################################################
@@ -245,6 +290,8 @@ class ProjectorGenerator:
     rel_embedding_size : `int`
         Relative embedding size used for calculating the projectors.
         See :py:func:`get_projector` for details.
+    proj_shape : `(int, int)` or `None`
+        Shape of projector array. If `None`, uses PSF shape.
 
     Attributes
     ----------
@@ -274,7 +321,8 @@ class ProjectorGenerator:
 
     def __init__(
         self, trafo_site_to_image=None,
-        integrated_psf_generator=None, rel_embedding_size=4
+        integrated_psf_generator=None, rel_embedding_size=4,
+        proj_shape=None
     ):
         # Protected variables
         self._proj_cache = None
@@ -283,6 +331,7 @@ class ProjectorGenerator:
         self.integrated_psf_generator = integrated_psf_generator
         self.rel_embedding_size = rel_embedding_size
         self.proj_cache_built = False
+        self.proj_shape = proj_shape
 
     @property
     def psf_supersample(self):
@@ -292,20 +341,31 @@ class ProjectorGenerator:
     def psf_shape(self):
         return self.integrated_psf_generator.psf_shape
 
-    def setup_cache(self, print_progress=False):
+    def setup_cache(self, min_proj_fidelity=0.8, print_progress=False):
         """
         Sets up the cache for generating subpixel-shifted projectors.
+
+        Parameters
+        ----------
+        min_proj_fidelity : `float`
+            If the projector fidelity is smaller than `min_proj_fidelity`,
+            an error is printed.
+        print_progress : `bool``
+            Whether a progress bar is printed.
         """
         # Verify integrated psf generator cache
         if not self.integrated_psf_generator.psf_integrated_cache_built:
             self.integrated_psf_generator.setup_cache(
                 print_progress=print_progress
             )
+        if self.proj_shape is None:
+            self.LOGGER.warn("Using `psf_shape` as `proj_shape`")
+            self.proj_shape = self.psf_shape
         # Build projector cache
         _ss = self.psf_supersample
         _hss = _ss // 2
         self._proj_cache = np.full((
-            _ss, _ss, self.psf_shape[0], self.psf_shape[1]
+            _ss, _ss, self.proj_shape[0], self.proj_shape[1]
         ), np.nan, dtype=float)
         _iter = misc.get_combinations([
             np.arange(-_hss, _ss - _hss),
@@ -314,10 +374,16 @@ class ProjectorGenerator:
         if print_progress:
             _iter = misc.iter_progress(_iter)
         for dx, dy in _iter:
-            self._proj_cache[dx, dy] = get_projector(
+            self._proj_cache[dx, dy], _fidelity = get_projector(
                 self.trafo_site_to_image, self.integrated_psf_generator,
-                dx=dx, dy=dy, rel_embedding_size=self.rel_embedding_size
+                dx=dx, dy=dy, rel_embedding_size=self.rel_embedding_size,
+                proj_shape=self.proj_shape, ret_proj_fidelity=True
             )
+            if _fidelity < min_proj_fidelity:
+                self.LOGGER.error(
+                    f"Low projector fidelity for index [{dx:d}, {dy:d}]: "
+                    f"{_fidelity:.3f} < {min_proj_fidelity:.3f}"
+                )
         self.proj_cache_built = True
 
     def generate_projector(self, dx=0, dy=0):
@@ -339,5 +405,6 @@ class ProjectorGenerator:
         else:
             return get_projector(
                 self.trafo_site_to_image, self.integrated_psf_generator,
-                dx=dx, dy=dy, rel_embedding_size=self.rel_embedding_size
+                dx=dx, dy=dy, rel_embedding_size=self.rel_embedding_size,
+                proj_shape=self.proj_shape
             )
