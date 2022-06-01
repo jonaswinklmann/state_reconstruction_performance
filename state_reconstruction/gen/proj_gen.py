@@ -6,10 +6,16 @@ Calculates the projectors to map images to lattice sites.
 
 import copy
 import numpy as np
+import os
 
+from libics.env.logging import get_logger
 from libics.core.data.arrays import get_coordinate_meshgrid
 from libics.core.util import misc
+from libics.core.data.types import AttrHashBase
+from libics.core import io
 
+from state_reconstruction import __version__
+from state_reconstruction import config
 from state_reconstruction.gen.image_gen import get_local_psfs
 
 
@@ -169,7 +175,6 @@ def get_embedded_projectors(embedded_psfs):
 def get_projector(
     trafo_site_to_image, integrated_psf_generator,
     dx=0, dy=0, rel_embedding_size=4, normalize=True,
-    proj_shape=None, proj_fidelity=None, ret_proj_fidelity=False
 ):
     """
     Gets the projector associated with a subpixel-shifted binned PSF.
@@ -188,32 +193,16 @@ def get_projector(
         the binned PSF size.
     normalize : `bool`
         Whether to normalize the projector.
-    proj_shape : `(int, int)`
-        Returned projector shape. Overwrites `proj_fidelity`.
-        If `None`, deduces shape from `proj_fidelity`.
-    proj_fidelity : `float`
-        Adjusts the projector shape such that the projector fidelity
-        is above `proj_fidelity`.
-        If both `proj_shape` and `proj_fidelity` are `None`,
-        the projector shape corresponds to the integrated PSF shape.
-    ret_proj_fidelity : `bool`
-        Whether to return the projector fidelity.
-        The projector fidelity is defined as the absolute value contained
-        in the cropped ROI in relative to the full projector.
 
     Returns
     -------
     center_proj : `np.ndarray(2, float)`
-        Projector. Dimensions: `[n_binned_psf, n_binned_psf]`
-    proj_fidelity : `float`
-        If `ret_proj_fidelity` is set, returns the projector fidelity.
+        (Embedded) projector. Dimensions:
+        `[rel_embedding_size*n_binned_psf, rel_embedding_size*n_binned_psf]`.
     """
     center_shift = (
         np.array([dx, dy]) / integrated_psf_generator.psf_supersample
     )
-    if proj_fidelity is not None:
-        if proj_fidelity <= 0 or proj_fidelity > 1:
-            raise ValueError("Invalid `proj_fidelity`")
     # Center trafo
     centered_trafo = copy.deepcopy(trafo_site_to_image)
     centered_trafo.offset = np.zeros(2)
@@ -228,44 +217,80 @@ def get_projector(
         *image_pos.T, integrated_psf_generator=integrated_psf_generator
     )
     embedded_psfs = get_embedded_local_psfs(
-        local_psfs,
-        offset=-embedding_size//2,
-        size=embedding_size,
-        normalize=True
+        local_psfs, offset=-embedding_size//2,
+        size=embedding_size, normalize=True
     )
     # Get projectors
     embedded_projs = get_embedded_projectors(embedded_psfs)
-    # Crop central projector
-    if proj_shape is None and proj_fidelity is None:
-        proj_shape = integrated_psf_generator.psf_shape
-    if proj_shape is not None:
-        roi = misc.cv_index_center_to_slice(
-            np.array(embedded_psfs.shape[1:]) // 2, proj_shape
-        )
-    else:
-        _fidelity = 0
-        _shape = np.array(integrated_psf_generator.psf_shape)
-        _shape = _shape - np.min(_shape) + 1
-        _denominator = np.sum(np.abs(embedded_projs[center_idx]))
-        while _fidelity < proj_fidelity:
-            roi = misc.cv_index_center_to_slice(
-                np.array(embedded_psfs.shape[1:]) // 2, _shape
-            )
-            _fidelity = (
-                np.sum(np.abs(embedded_projs[center_idx][roi])) / _denominator
-            )
-            _shape += 1
-    center_proj = embedded_projs[center_idx][roi]
-    proj_fidelity = (
-        np.sum(np.abs(embedded_projs[center_idx][roi]))
-        / np.sum(np.abs(embedded_projs[center_idx]))
-    )
+    center_proj = embedded_projs[center_idx]
     if normalize:
         center_proj /= np.sum(center_proj)
-    if ret_proj_fidelity:
-        return center_proj, proj_fidelity
+    return center_proj
+
+
+def get_projector_positivity(proj):
+    """
+    Gets the ratio between signed sum and sum of absolute values of projector.
+    """
+    return np.sum(proj) / np.sum(np.abs(proj))
+
+
+def get_projector_fidelity(proj_cropped, proj_full):
+    """
+    Gets the relative (absolute) weight contained in the cropped projector.
+    """
+    if not np.isscalar(proj_full):
+        proj_full = np.sum(np.abs(proj_full))
+    return np.sum(np.abs(proj_cropped)) / proj_full
+
+
+def crop_projector(
+    proj_full, proj_shape=None, proj_fidelity=1, normalize=False
+):
+    """
+    Parameters
+    ----------
+    proj_full : `Array[2, float]`
+        Full (embedded) projector.
+    proj_shape : `(int, int)`
+        Returned projector shape. Overwrites `proj_fidelity`.
+        If `None`, deduces shape from `proj_fidelity`.
+    proj_fidelity : `float`
+        Adjusts the projector shape such that the projector fidelity
+        is above `proj_fidelity`.
+    normalize : `bool`
+        Whether to normalize the projector.
+
+    Returns
+    -------
+    proj_cropped : `Array[2, float]`
+        Cropped projector.
+    """
+    # Parse parameters
+    if proj_shape is None:
+        if proj_fidelity > 1:
+            raise ValueError("Invalid `proj_fidelity`")
+        elif proj_fidelity == 1:
+            return proj_full.copy()
+    proj_center = np.array(proj_full.shape) // 2
+    # If proj_shape is fixed
+    if proj_shape is not None:
+        roi = misc.cv_index_center_to_slice(proj_center, proj_shape)
+    # Iterate proj_shape until proj_fidelity is reached
     else:
-        return center_proj
+        _fidelity = 0
+        _shape = np.array(proj_full.shape)
+        _shape = _shape - np.min(_shape)
+        _denominator = np.sum(np.abs(proj_full))
+        while _fidelity < proj_fidelity:
+            _shape += 1
+            roi = misc.cv_index_center_to_slice(proj_center, _shape)
+            _fidelity = get_projector_fidelity(proj_full[roi], _denominator)
+    # Crop projector
+    proj_cropped = proj_full[roi]
+    if normalize:
+        proj_cropped /= np.sum(proj_cropped)
+    return proj_cropped
 
 
 ###############################################################################
@@ -273,7 +298,7 @@ def get_projector(
 ###############################################################################
 
 
-class ProjectorGenerator:
+class ProjectorGenerator(AttrHashBase):
 
     """
     Class for generating projectors from PSFs.
@@ -310,28 +335,40 @@ class ProjectorGenerator:
     >>> type(trafo)
     libics.tools.trafo.linear.AffineTrafo2d
     >>> prjgen = ProjectorGenerator(
-    ...     trafo_site_to_image=trafo, integrated_psf_generator=ipsfgen
+    ...     trafo_site_to_image=trafo,
+    ...     integrated_psf_generator=ipsfgen,
+    ...     proj_shape=(31, 31)
     ... )
     >>> prjgen.setup_cache()
     >>> prjgen.proj_cache_built
     True
     >>> prjgen.generate_projector(dx=0, dy=2).shape
-    (21, 21)
+    (31, 31)
     """
+
+    LOGGER = get_logger("srec.ProjectorGenerator")
+    HASH_KEYS = AttrHashBase.HASH_KEYS | {
+        "trafo_site_to_image", "integrated_psf_generator", "rel_embedding_size"
+    }
 
     def __init__(
         self, trafo_site_to_image=None,
         integrated_psf_generator=None, rel_embedding_size=4,
         proj_shape=None
     ):
+        super().__init__()
         # Protected variables
-        self._proj_cache = None
-        # Public variables
+        self._proj_full_cache = None
+        self._proj_shape = proj_shape
+        # Public input variables
         self.trafo_site_to_image = trafo_site_to_image
         self.integrated_psf_generator = integrated_psf_generator
         self.rel_embedding_size = rel_embedding_size
+        # Public output variables
+        self.proj_cache = None
         self.proj_cache_built = False
-        self.proj_shape = proj_shape
+        self.proj_fidelity = None
+        self.proj_positivity = None
 
     @property
     def psf_supersample(self):
@@ -341,15 +378,28 @@ class ProjectorGenerator:
     def psf_shape(self):
         return self.integrated_psf_generator.psf_shape
 
-    def setup_cache(self, min_proj_fidelity=0.8, print_progress=False):
+    @property
+    def proj_shape(self):
+        _ps = self._proj_shape
+        return _ps if _ps is not None else self.psf_shape
+
+    @proj_shape.setter
+    def proj_shape(self, val):
+        if np.any(self._proj_shape != val):
+            self._proj_shape = val
+            if self.proj_cache_built is True:
+                self.crop_cache()
+
+    def setup_cache(self, from_file=True, to_file=True, print_progress=False):
         """
         Sets up the cache for generating subpixel-shifted projectors.
 
         Parameters
         ----------
-        min_proj_fidelity : `float`
-            If the projector fidelity is smaller than `min_proj_fidelity`,
-            an error is printed.
+        from_file : `bool`
+            Whether to allow loading from a cache file.
+        to_file : `bool`
+            Whether to allow saving to a cache file.
         print_progress : `bool``
             Whether a progress bar is printed.
         """
@@ -358,33 +408,114 @@ class ProjectorGenerator:
             self.integrated_psf_generator.setup_cache(
                 print_progress=print_progress
             )
-        if self.proj_shape is None:
-            self.LOGGER.warn("Using `psf_shape` as `proj_shape`")
-            self.proj_shape = self.psf_shape
-        # Build projector cache
+        # Try to load from file
+        if from_file:
+            if self.load_cache():
+                if print_progress:
+                    print("Loaded from cache file")
+                return
+        # Initialize variables
         _ss = self.psf_supersample
         _hss = _ss // 2
-        self._proj_cache = np.full((
-            _ss, _ss, self.proj_shape[0], self.proj_shape[1]
-        ), np.nan, dtype=float)
+        cache_shape = (_ss, _ss)
+        proj_full_shape = tuple(
+            np.array(self.psf_shape) * self.rel_embedding_size
+        )
+        self._proj_full_cache = np.zeros(
+            cache_shape + proj_full_shape, dtype=float
+        )
+        _positivity = np.zeros(cache_shape, dtype=float)
+        # Calculate projectors
         _iter = misc.get_combinations([
-            np.arange(-_hss, _ss - _hss),
-            np.arange(-_hss, _ss - _hss)
+            np.arange(-_hss, _ss - _hss), np.arange(-_hss, _ss - _hss)
         ])
         if print_progress:
             _iter = misc.iter_progress(_iter)
         for dx, dy in _iter:
-            self._proj_cache[dx, dy], _fidelity = get_projector(
+            _proj = get_projector(
                 self.trafo_site_to_image, self.integrated_psf_generator,
-                dx=dx, dy=dy, rel_embedding_size=self.rel_embedding_size,
-                proj_shape=self.proj_shape, ret_proj_fidelity=True
+                dx=dx, dy=dy, rel_embedding_size=self.rel_embedding_size
             )
-            if _fidelity < min_proj_fidelity:
-                self.LOGGER.error(
-                    f"Low projector fidelity for index [{dx:d}, {dy:d}]: "
-                    f"{_fidelity:.3f} < {min_proj_fidelity:.3f}"
-                )
+            self._proj_full_cache[dx, dy] = _proj
+            _positivity[dx, dy] = get_projector_positivity(_proj)
+        # Save to file
+        if to_file:
+            self.save_cache()
+        # Assign attributes
         self.proj_cache_built = True
+        self.proj_positivity = np.mean(_positivity)
+        self.crop_cache()
+
+    def crop_cache(self, proj_shape=False):
+        """
+        Parameters
+        ----------
+        proj_shape : `(int, int)` or `None` or `False`
+            If `False`, uses its stored attribute value :py:attr:`proj_shape`.
+            If `(int, int)`, overwrites the attribute.
+            If `None`, uses the PSF shape :py:attr:`psf_shape`.
+        """
+        # Parse parameters
+        if self.proj_cache_built is False:
+            raise RuntimeError(
+                "Projector cache is not set up, run `setup_cache` first"
+            )
+        if proj_shape is not False:
+            self._proj_shape = proj_shape
+        proj_shape = self.proj_shape
+        cache_shape = self._proj_full_cache.shape[:2]
+        # Crop projectors
+        self.proj_cache = np.zeros(cache_shape + proj_shape, dtype=float)
+        fidelity = np.zeros(cache_shape, dtype=float)
+        for x, y in np.ndindex(*self._proj_full_cache.shape[:2]):
+            proj_full = self._proj_full_cache[x, y]
+            proj_cropped = crop_projector(proj_full, proj_shape)
+            self.proj_cache[x, y] = proj_cropped
+            fidelity[x, y] = get_projector_fidelity(proj_cropped, proj_full)
+        # Assign attributes
+        self.proj_fidelity = np.mean(fidelity)
+
+    def get_cache_fp(self):
+        """
+        Gets the default cache file path.
+        """
+        fn = hex(hash(self)) + ".json"
+        fp = os.path.join(config.get_config("projector_cache_dir"), fn)
+        return fp
+
+    def save_cache(self, fp=None):
+        """
+        Saves the full projector cache to file.
+        """
+        if fp is None:
+            fp = self.get_cache_fp()
+        _d = {
+            "_proj_full_cache": self._proj_full_cache,
+            "state_estimation_version": __version__
+        }
+        if not os.path.exists(os.path.dirname(fp)):
+            os.makedirs(os.path.dirname(fp))
+        return io.save(fp, _d)
+
+    def load_cache(self, fp=None):
+        """
+        Loads the full projector cache from file.
+        """
+        if fp is None:
+            fp = self.get_cache_fp()
+        if not os.path.exists(fp):
+            return False
+        _d = io.load(fp)
+        if _d["state_estimation_version"] != __version__:
+            self.LOGGER.warn(
+                f"Cached file has wrong version (fp): "
+                f"loaded: {_d['state_estimation_version']}, "
+                f"installed: {__version__}"
+            )
+        self._proj_full_cache = _d["_proj_full_cache"]
+        self.proj_cache_built = True
+        self.crop_cache()
+        return True
 
     def generate_projector(self, dx=0, dy=0):
         """
@@ -401,10 +532,11 @@ class ProjectorGenerator:
             Projector.
         """
         if self.proj_cache_built:
-            return self._proj_cache[dx, dy].copy()
+            return self.proj_cache[dx, dy].copy()
         else:
-            return get_projector(
+            proj_full = get_projector(
                 self.trafo_site_to_image, self.integrated_psf_generator,
                 dx=dx, dy=dy, rel_embedding_size=self.rel_embedding_size,
                 proj_shape=self.proj_shape
             )
+            return crop_projector(proj_full, proj_shape=self.proj_shape)

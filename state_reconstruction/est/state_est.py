@@ -99,7 +99,7 @@ def apply_projectors(local_images, projector_generator):
     images = images.reshape((len(images), -1))
     if not projector_generator.proj_cache_built:
         projector_generator.setup_cache()
-    projs = projector_generator._proj_cache
+    projs = projector_generator.proj_cache
     projs = projs.reshape((projs.shape[:2]) + (-1,))
     xidx = local_images["dx"] % projector_generator.psf_supersample
     yidx = local_images["dy"] % projector_generator.psf_supersample

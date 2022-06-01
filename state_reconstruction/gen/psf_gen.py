@@ -8,6 +8,7 @@ import numpy as np
 import scipy.special
 
 from libics.core.data.arrays import ArrayData
+from libics.core.data.types import AttrHashBase
 from libics.core.util import misc
 from libics.tools.math import peaked
 
@@ -220,7 +221,7 @@ def get_integrated_psf(psf, dx=0, dy=0, integration_size=5):
     return new_psf
 
 
-class IntegratedPsfGenerator:
+class IntegratedPsfGenerator(AttrHashBase):
 
     """
     Class for generating binned PSFs.
@@ -256,6 +257,8 @@ class IntegratedPsfGenerator:
     (21, 21)
     """
 
+    HASH_KEYS = AttrHashBase.HASH_KEYS | {"psf", "psf_supersample"}
+
     def __init__(self, psf=None, psf_supersample=5):
         # Protected variables
         self._psf = None
@@ -272,6 +275,8 @@ class IntegratedPsfGenerator:
 
     @psf.setter
     def psf(self, val):
+        if np.any(np.array(val.shape) % 2 == 0):
+            raise ValueError("Invalid `psf` (shape must be odd)")
         self._psf = val
         self.psf_integrated_cache_built = False
 
@@ -281,6 +286,8 @@ class IntegratedPsfGenerator:
 
     @psf_supersample.setter
     def psf_supersample(self, val):
+        if val % 2 == 0:
+            raise ValueError("Invalid `psf_supersample` (must be odd)")
         self._psf_supersample = val
         self.psf_integrated_cache_built = False
 
