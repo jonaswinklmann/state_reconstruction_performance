@@ -10,6 +10,7 @@ import scipy.special
 from libics.core.data.arrays import ArrayData
 from libics.core.data.types import AttrHashBase
 from libics.core.util import misc
+from libics.core import io
 from libics.tools.math import peaked
 
 
@@ -294,6 +295,33 @@ class IntegratedPsfGenerator(AttrHashBase):
     @property
     def psf_shape(self):
         return np.array(self.psf.shape) // self.psf_supersample
+
+    def save(self, fp):
+        """
+        Saves PSF and supersampling to a *.json file.
+
+        Parameters
+        ----------
+        fp : `str`
+            Save file path.
+        """
+        _d = {
+            "psf": self.psf,
+            "psf_supersample": self.psf_supersample
+        }
+        io.save(misc.assume_endswith(fp, ".json"), _d)
+
+    @staticmethod
+    def load(fp):
+        """
+        Loads a PSF file, returns an :py:class:`IntegratedPsfGenerator` object.
+        """
+        _d = io.load(misc.assume_endswith(fp, ".json"))
+        if "psf" not in _d or "psf_supersample" not in _d:
+            raise FileNotFoundError("Invalid file")
+        return IntegratedPsfGenerator(
+            psf=_d["psf"], psf_supersample=_d["psf_supersample"]
+        )
 
     def setup_cache(self, print_progress=False):
         """
