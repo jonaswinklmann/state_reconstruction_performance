@@ -424,7 +424,6 @@ class ProjectorGenerator(AttrHashBase):
         self._proj_full_cache = np.zeros(
             cache_shape + proj_full_shape, dtype=float
         )
-        _positivity = np.zeros(cache_shape, dtype=float)
         # Calculate projectors
         _iter = misc.get_combinations([
             np.arange(-_hss, _ss - _hss), np.arange(-_hss, _ss - _hss)
@@ -437,14 +436,24 @@ class ProjectorGenerator(AttrHashBase):
                 dx=dx, dy=dy, rel_embedding_size=self.rel_embedding_size
             )
             self._proj_full_cache[dx, dy] = _proj
-            _positivity[dx, dy] = get_projector_positivity(_proj)
         # Save to file
         if to_file:
             self.save_cache()
         # Assign attributes
         self.proj_cache_built = True
-        self.proj_positivity = np.mean(_positivity)
+        self._calc_proj_positivity()
         self.crop_cache()
+
+    def _calc_proj_positivity(self):
+        """
+        Calculates the full projector positivity.
+        """
+        cache_shape = self._proj_full_cache.shape[:2]
+        _positivity = np.zeros(cache_shape, dtype=float)
+        for i, j in np.ndindex(*cache_shape):
+            _proj = self._proj_full_cache[i, j]
+            _positivity[i, j] = get_projector_positivity(_proj)
+        self.proj_positivity = np.mean(_positivity)
 
     def crop_cache(self, proj_shape=False):
         """
@@ -514,6 +523,7 @@ class ProjectorGenerator(AttrHashBase):
             )
         self._proj_full_cache = _d["_proj_full_cache"]
         self.proj_cache_built = True
+        self._calc_proj_positivity()
         self.crop_cache()
         return True
 

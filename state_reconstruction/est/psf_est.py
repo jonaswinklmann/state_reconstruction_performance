@@ -19,7 +19,7 @@ from .iso_est import IsolatedLocator
 
 def find_label_regions_subpixel(
     image, label_centers, region_size, supersample=5,
-    interpolation="linear", normalize=False
+    interpolation="linear", normalize=False, rmv_invalid_shape=True
 ):
     """
     Get subpixel-aligned supersampled subregions.
@@ -38,6 +38,8 @@ def find_label_regions_subpixel(
         Supersampling interpolation. Options: `"nearest", "linear"`.
     normalize : `bool`
         Whether to normalize each subregion image.
+    rmv_invalid_shape : `bool`
+        Whether to remove invalid shapes.
 
     Returns
     -------
@@ -57,6 +59,9 @@ def find_label_regions_subpixel(
                 center_int, region_size + 2
             )
             im_int = ArrayData(image[roi_int])
+            if rmv_invalid_shape:
+                if not np.allclose(np.array(im_int.shape), region_size + 2):
+                    continue
             # Supersample image
             if supersample is None:
                 im_float = im_int
