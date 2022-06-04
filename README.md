@@ -28,7 +28,7 @@ pip install ./state_reconstruction
 
 ## Dependencies
 
-* [libics](https://www.github.com/david-wei/libics)-v1
+* [libics](https://www.github.com/david-wei/libics)
 
 
 ## Getting started

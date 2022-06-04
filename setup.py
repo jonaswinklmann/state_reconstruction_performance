@@ -34,6 +34,7 @@ setup(name='state_reconstruction',
       ],
       python_requires='>=3.6',
       dependency_links=[
+            'https://github.com/david-wei/libics'
       ],
       include_package_data=True,
       zip_safe=False)

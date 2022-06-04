@@ -396,8 +396,8 @@ The RNG is used for finite filling and outside atom location.</p>
 <p>Calculates the projectors to map images to lattice sites.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.proj_gen.</span></span><span class="sig-name descname"><span class="pre">ProjectorGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trafo_site_to_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrated_psf_generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_embedding_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.proj_gen.</span></span><span class="sig-name descname"><span class="pre">ProjectorGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trafo_site_to_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrated_psf_generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_embedding_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">libics.core.data.types.AttrHashBase</span></code></p>
 <p>Class for generating projectors from PSFs.</p>
 <p>Uses pre-calculation to allow for high-performance generation
 of subpixel-shifted projectors.</p>
@@ -410,6 +410,8 @@ of subpixel-shifted projectors.</p>
 </dd>
 <dt><strong>rel_embedding_size</strong><span class="classifier"><cite>int</cite></span></dt><dd><p>Relative embedding size used for calculating the projectors.
 See <a class="reference internal" href="#state_reconstruction.gen.proj_gen.get_projector" title="state_reconstruction.gen.proj_gen.get_projector"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_projector()</span></code></a> for details.</p>
+</dd>
+<dt><strong>proj_shape</strong><span class="classifier"><cite>(int, int)</cite> or <cite>None</cite></span></dt><dd><p>Shape of projector array. If <cite>None</cite>, uses PSF shape.</p>
 </dd>
 </dl>
 </dd>
@@ -424,13 +426,15 @@ an <cite>AffineTrafo2d</cite> object:</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">trafo</span><span class="p">)</span>
 <span class="go">libics.tools.trafo.linear.AffineTrafo2d</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">prjgen</span> <span class="o">=</span> <span class="n">ProjectorGenerator</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">trafo_site_to_image</span><span class="o">=</span><span class="n">trafo</span><span class="p">,</span> <span class="n">integrated_psf_generator</span><span class="o">=</span><span class="n">ipsfgen</span>
+<span class="gp">... </span>    <span class="n">trafo_site_to_image</span><span class="o">=</span><span class="n">trafo</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">integrated_psf_generator</span><span class="o">=</span><span class="n">ipsfgen</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">proj_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">31</span><span class="p">,</span> <span class="mi">31</span><span class="p">)</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">prjgen</span><span class="o">.</span><span class="n">setup_cache</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">prjgen</span><span class="o">.</span><span class="n">proj_cache_built</span>
 <span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">prjgen</span><span class="o">.</span><span class="n">generate_projector</span><span class="p">(</span><span class="n">dx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">dy</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
-<span class="go">(21, 21)</span>
+<span class="go">(31, 31)</span>
 </pre></div>
 </div>
 <dl class="field-list">
@@ -448,14 +452,55 @@ an <cite>AffineTrafo2d</cite> object:</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.generate_projector" title="state_reconstruction.gen.proj_gen.ProjectorGenerator.generate_projector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_projector</span></code></a>([dx, dy])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.crop_cache" title="state_reconstruction.gen.proj_gen.ProjectorGenerator.crop_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">crop_cache</span></code></a>([proj_shape])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.generate_projector" title="state_reconstruction.gen.proj_gen.ProjectorGenerator.generate_projector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_projector</span></code></a>([dx, dy])</p></td>
 <td><p>Gets the projector with subpixel shift.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.setup_cache" title="state_reconstruction.gen.proj_gen.ProjectorGenerator.setup_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_cache</span></code></a>([print_progress])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.get_cache_fp" title="state_reconstruction.gen.proj_gen.ProjectorGenerator.get_cache_fp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_cache_fp</span></code></a>()</p></td>
+<td><p>Gets the default cache file path.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.load_cache" title="state_reconstruction.gen.proj_gen.ProjectorGenerator.load_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_cache</span></code></a>([fp])</p></td>
+<td><p>Loads the full projector cache from file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.save_cache" title="state_reconstruction.gen.proj_gen.ProjectorGenerator.save_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_cache</span></code></a>([fp])</p></td>
+<td><p>Saves the full projector cache to file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.setup_cache" title="state_reconstruction.gen.proj_gen.ProjectorGenerator.setup_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_cache</span></code></a>([from_file, to_file, print_progress])</p></td>
 <td><p>Sets up the cache for generating subpixel-shifted projectors.</p></td>
 </tr>
 </tbody>
 </table>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.HASH_KEYS">
+<span class="sig-name descname"><span class="pre">HASH_KEYS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'integrated_psf_generator',</span> <span class="pre">'rel_embedding_size',</span> <span class="pre">'trafo_site_to_image'}</span></em><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.HASH_KEYS" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.LOGGER">
+<span class="sig-name descname"><span class="pre">LOGGER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;Logger</span> <span class="pre">srec.ProjectorGenerator</span> <span class="pre">(WARNING)&gt;</span></em><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.LOGGER" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.crop_cache">
+<span class="sig-name descname"><span class="pre">crop_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.crop_cache" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>proj_shape</strong><span class="classifier"><cite>(int, int)</cite> or <cite>None</cite> or <cite>False</cite></span></dt><dd><p>If <cite>False</cite>, uses its stored attribute value <a class="reference internal" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.proj_shape" title="state_reconstruction.gen.proj_gen.ProjectorGenerator.proj_shape"><code class="xref py py-attr docutils literal notranslate"><span class="pre">proj_shape</span></code></a>.
+If <cite>(int, int)</cite>, overwrites the attribute.
+If <cite>None</cite>, uses the PSF shape <a class="reference internal" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.psf_shape" title="state_reconstruction.gen.proj_gen.ProjectorGenerator.psf_shape"><code class="xref py py-attr docutils literal notranslate"><span class="pre">psf_shape</span></code></a>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.generate_projector">
 <span class="sig-name descname"><span class="pre">generate_projector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.generate_projector" title="Permalink to this definition"></a></dt>
@@ -476,6 +521,23 @@ an <cite>AffineTrafo2d</cite> object:</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.get_cache_fp">
+<span class="sig-name descname"><span class="pre">get_cache_fp</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.get_cache_fp" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the default cache file path.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.load_cache">
+<span class="sig-name descname"><span class="pre">load_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.load_cache" title="Permalink to this definition"></a></dt>
+<dd><p>Loads the full projector cache from file.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.proj_shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">proj_shape</span></span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.proj_shape" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.psf_shape">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">psf_shape</span></span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.psf_shape" title="Permalink to this definition"></a></dt>
@@ -487,11 +549,56 @@ an <cite>AffineTrafo2d</cite> object:</p>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.setup_cache">
-<span class="sig-name descname"><span class="pre">setup_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">print_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.setup_cache" title="Permalink to this definition"></a></dt>
-<dd><p>Sets up the cache for generating subpixel-shifted projectors.</p>
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.save_cache">
+<span class="sig-name descname"><span class="pre">save_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.save_cache" title="Permalink to this definition"></a></dt>
+<dd><p>Saves the full projector cache to file.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.ProjectorGenerator.setup_cache">
+<span class="sig-name descname"><span class="pre">setup_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">from_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.ProjectorGenerator.setup_cache" title="Permalink to this definition"></a></dt>
+<dd><p>Sets up the cache for generating subpixel-shifted projectors.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>from_file</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to allow loading from a cache file.</p>
+</dd>
+<dt><strong>to_file</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to allow saving to a cache file.</p>
+</dd>
+<dt><strong>print_progress</strong><span class="classifier"><cite>bool`</cite></span></dt><dd><p>Whether a progress bar is printed.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.crop_projector">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.proj_gen.</span></span><span class="sig-name descname"><span class="pre">crop_projector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj_full</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_fidelity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.crop_projector" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>proj_full</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Full (embedded) projector.</p>
+</dd>
+<dt><strong>proj_shape</strong><span class="classifier"><cite>(int, int)</cite></span></dt><dd><p>Returned projector shape. Overwrites <cite>proj_fidelity</cite>.
+If <cite>None</cite>, deduces shape from <cite>proj_fidelity</cite>.</p>
+</dd>
+<dt><strong>proj_fidelity</strong><span class="classifier"><cite>float</cite></span></dt><dd><p>Adjusts the projector shape such that the projector fidelity
+is above <cite>proj_fidelity</cite>.</p>
+</dd>
+<dt><strong>normalize</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to normalize the projector.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl>
+<dt><strong>proj_cropped</strong><span class="classifier"><cite>Array[2, float]</cite></span></dt><dd><p>Cropped projector.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -543,7 +650,7 @@ an <cite>AffineTrafo2d</cite> object:</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.get_projector">
-<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.proj_gen.</span></span><span class="sig-name descname"><span class="pre">get_projector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trafo_site_to_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrated_psf_generator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_embedding_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.get_projector" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.proj_gen.</span></span><span class="sig-name descname"><span class="pre">get_projector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trafo_site_to_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrated_psf_generator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_embedding_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.get_projector" title="Permalink to this definition"></a></dt>
 <dd><p>Gets the projector associated with a subpixel-shifted binned PSF.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters</dt>
@@ -558,15 +665,30 @@ an <cite>AffineTrafo2d</cite> object:</p>
 where the <cite>rel_embedding_size</cite> specifies this size with respect to
 the binned PSF size.</p>
 </dd>
+<dt><strong>normalize</strong><span class="classifier"><cite>bool</cite></span></dt><dd><p>Whether to normalize the projector.</p>
+</dd>
 </dl>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><dl>
-<dt><strong>center_proj</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>Projector. Dimensions: <cite>[n_binned_psf, n_binned_psf]</cite></p>
+<dt><strong>center_proj</strong><span class="classifier"><cite>np.ndarray(2, float)</cite></span></dt><dd><p>(Embedded) projector. Dimensions:
+<cite>[rel_embedding_size*n_binned_psf, rel_embedding_size*n_binned_psf]</cite>.</p>
 </dd>
 </dl>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.get_projector_fidelity">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.proj_gen.</span></span><span class="sig-name descname"><span class="pre">get_projector_fidelity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj_cropped</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_full</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.get_projector_fidelity" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the relative (absolute) weight contained in the cropped projector.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="state_reconstruction.gen.proj_gen.get_projector_positivity">
+<span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.proj_gen.</span></span><span class="sig-name descname"><span class="pre">get_projector_positivity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.proj_gen.get_projector_positivity" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the ratio between signed sum and sum of absolute values of projector.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -603,7 +725,7 @@ Dimensions: <cite>[n_atoms, ndim]</cite>.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">state_reconstruction.gen.psf_gen.</span></span><span class="sig-name descname"><span class="pre">IntegratedPsfGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psf_supersample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">libics.core.data.types.AttrHashBase</span></code></p>
 <p>Class for generating binned PSFs.</p>
 <p>Uses pre-calculation to allow for high-performance generation
 of subpixel-shifted binned PSFs.</p>
@@ -649,11 +771,22 @@ of subpixel-shifted binned PSFs.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.generate_integrated_psf" title="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.generate_integrated_psf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_integrated_psf</span></code></a>([dx, dy])</p></td>
 <td><p>Gets the binned PSF with subpixel shift.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.load" title="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code></a>(fp)</p></td>
+<td><p>Loads a PSF file, returns an <a class="reference internal" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator" title="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntegratedPsfGenerator</span></code></a> object.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.save" title="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.save"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code></a>(fp)</p></td>
+<td><p>Saves PSF and supersampling to a <a href="#id1"><span class="problematic" id="id2">*</span></a>.json file.</p></td>
+</tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.setup_cache" title="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.setup_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_cache</span></code></a>([print_progress])</p></td>
 <td><p>Sets up the cache for generating subpixel-shifted binned PSFs.</p></td>
 </tr>
 </tbody>
 </table>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.HASH_KEYS">
+<span class="sig-name descname"><span class="pre">HASH_KEYS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'psf',</span> <span class="pre">'psf_supersample'}</span></em><a class="headerlink" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.HASH_KEYS" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.generate_integrated_psf">
 <span class="sig-name descname"><span class="pre">generate_integrated_psf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.generate_integrated_psf" title="Permalink to this definition"></a></dt>
@@ -674,6 +807,12 @@ of subpixel-shifted binned PSFs.</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.load">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.load" title="Permalink to this definition"></a></dt>
+<dd><p>Loads a PSF file, returns an <a class="reference internal" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator" title="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntegratedPsfGenerator</span></code></a> object.</p>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.psf">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">psf</span></span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.psf" title="Permalink to this definition"></a></dt>
@@ -688,6 +827,20 @@ of subpixel-shifted binned PSFs.</p>
 <dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.psf_supersample">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">psf_supersample</span></span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.psf_supersample" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.save" title="Permalink to this definition"></a></dt>
+<dd><p>Saves PSF and supersampling to a <a href="#id3"><span class="problematic" id="id4">*</span></a>.json file.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>fp</strong><span class="classifier"><cite>str</cite></span></dt><dd><p>Save file path.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="state_reconstruction.gen.psf_gen.IntegratedPsfGenerator.setup_cache">
@@ -903,7 +1056,7 @@ and lattice site coordinates.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2019-2022, David Wei.</p>
+    <p>&#169; Copyright 2022, David Wei.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

@@ -21,7 +21,7 @@ from version import __version__, short_version
 # -- Project information -----------------------------------------------------
 
 project = 'state_reconstruction'
-copyright = '2019-2022, David Wei'
+copyright = '2022, David Wei'
 author = 'David Wei'
 
 # The short X.Y version
