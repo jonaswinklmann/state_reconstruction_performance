@@ -9,15 +9,20 @@ import PIL
 import numba as nb
 import numpy as np
 import scipy.optimize
-import scipy.special
+import scipy.ndimage
 
 from libics.env.logging import get_logger
 from libics.core.data.arrays import ArrayData
 from libics.core import io
-from libics.tools.math.signal import find_peaks_1d
+from libics.tools.math.peaked import FitGaussian1d
+from libics.tools.math.signal import (
+    find_histogram, find_peaks_1d_prominence, analyze_single_peak, PeakInfo
+)
 
 from state_reconstruction.gen import trafo_gen
 from .trafo_est import get_trafo_phase_from_points
+
+LOGGER = get_logger("srec.est.state_est")
 
 
 ###############################################################################
@@ -115,18 +120,6 @@ def apply_projectors(local_images, projector_generator):
 ###############################################################################
 
 
-def _double_erf_overlap(x, a0, a1, x0, x1, w0, w1):
-    return (
-        a0 * scipy.special.erf((x - x0) / w0 / np.sqrt(2))
-        - a1 * scipy.special.erf((x - x1) / w1 / np.sqrt(2))
-        - a0 - a1
-    )**2
-
-
-def _erf_probability(x, x0, wx):
-    return 0.5 * (scipy.special.erf((x - x0) / wx / np.sqrt(2)) + 1)
-
-
 def get_emission_histogram(
     emissions, bin_range=None
 ):
@@ -150,34 +143,63 @@ def get_emission_histogram(
     size = emissions.size
     if size < 64:
         raise RuntimeError("Size of `emissions` too small")
-    bins = min(size / 4, np.sqrt(size))
-    if bins > size / 4:
-        bins = size / 4
+    bins = min(size / 6, np.sqrt(size) / 2)
     bins = np.round(bins).astype(int)
-    _h, _e = np.histogram(emissions, bins=bins, range=bin_range)
-    _c = (_e[1:] + _e[:-1]) / 2
-    hist = ArrayData(_h)
+    hist = find_histogram(emissions, bins=bins, range=bin_range)
     hist.set_data_quantity(name="histogram")
-    hist.set_dim(0, points=_c)
     hist.set_var_quantity(0, name="projected emission")
     return hist
 
 
-def analyze_emission_histogram(hist, min_peak_rel_dist=2):
+def analyze_emission_histogram(
+    hist, strat=None, strat_size=20, strat_prominence=0.08,
+    sfit_idx_center_ratio=0.1, sfit_filter=1., sfit_n12_cdf_ratio=0.5,
+    bgth_signal_err_num=0.1
+):
     """
     Gets state discrimination thresholds from projected images.
 
-    Uses the histogram to find two or three peaks. The thresholds are set
-    by setting equal false negativer/positive rates.
+    Uses the histogram to find two or three peaks.
+    There are two algorithms to determine the thresholds:
+
+    * For the `signal fit` strategy, the background and signal peaks are
+      fitted. The threshold is then set to have equal false negativer/positive
+      rates.
+    * For the `background threshold` strategy, only the background peak is
+      fitted. The threshold is set to match a given false positive rate.
+    * If no strategy is selected, a low-resolution histogram is used to
+      estimate whether a signal peak can potentially be fitted.
+
 
     Parameters
     ----------
     hist : `ArrayData(1, float)`
         Projected image histogram.
-    min_peak_rel_dist : `int`
-        If the spacing between the first two peaks is smaller than
-        the product of background peak width and `min_peak_rel_dist`,
-        an error is raised.
+    strat : `str` or `None`
+        Threshold determination strategy. Options:
+        `"sfit"` for signal fit. "bgth" for background threshold.
+    strat_size : `int`
+        Number of histogram bins, used for strategy selection.
+    strat_prominence : `float`
+        Relative peak prominence required to select `"sfit"`.
+    sfit_idx_center_ratio : `float`
+        The final background fit uses a cropped histogram.
+        This parameter determines the starting point of the cropping,
+        where `0` corresponds to the right base and `1` to the center.
+    sfit_filter : `float`
+        If the raw signal could not be fitted, a second fit is applied on
+        Gaussian filtered data. This parameter selects the filtering width.
+    sfit_n12_cdf_ratio : `float`
+        The is threshold between state 1 and 2 is determined either by
+        the same cumulative probability (A) or by the same distance from the
+        signal center (B). This parameter allows to average between both
+        options, where `0` corresponds to fully (B) and `1` to (A).
+    bgth_signal_err_num : `float`
+        Absolute false positive rate for background thresholding.
+        In the typical use case, there are only few signal counts, so
+        selecting a small value is advisable.
+        If this strategy is used for a larger signal count, consider
+        using a larger rate.
 
     Returns
     -------
@@ -187,63 +209,225 @@ def analyze_emission_histogram(hist, min_peak_rel_dist=2):
         Peak centers.
     threshold : `[float, float]`
         State thresholds.
+    error_prob : `[float, float]`
+        False positive/negative rates for states `0` and `1`
     error_num : `[float, float]`
-        False positive/negative counts at first/second threshold.
+        False positive/negative counts for states `0` and `1`.
+        In contrast to the normalized `error_prob` parameter,
+        this number takes `emission_num` into account.
     emission_num : `[float, float, float]`
         Number of sites mapped to the different states.
+    peak_info : `[PeakInfo, PeakInfo]`
+        Detailed peak information for states `0` and `1`.
     """
-    # Find histogram peaks
-    peaks = find_peaks_1d(
-        hist, npeaks=3, rel_prominence=0, base_prominence_ratio=0.1,
-        check_npeaks=False,
-        edge_peaks=True, fit_algorithm="gaussian", ret_vals=["width", "fit"]
-    )
-    if (
-        peaks["center"][1]
-        < peaks["center"][0] + peaks["width"][0] * min_peak_rel_dist
-    ):
-        raise RuntimeError("background peak stronger than signal peak")
-    # Separate peaks by minimizing errors
-    a0, a1 = [_fit.a for _fit in peaks["fit"][:2]]
-    x0, x1 = [_x for _x in peaks["center"][:2]]
-    w0, w1 = [_w for _w in peaks["width"][:2]]
-    x01_res = scipy.optimize.minimize(
-        _double_erf_overlap, np.mean([x0, x1]),
-        args=(a0, a1, x0, x1, w0, w1)
-    )
-    x01 = x01_res.x[0]
-    # Handle second peak
-    has_second_peak = (len(peaks["center"]) == 3)
-    if has_second_peak:
-        if peaks["center"][2] - x1 < x1 - x01:
-            has_second_peak = False
-    if has_second_peak:
-        a2, x2, w2 = peaks["fit"][2].a, peaks["center"][2], peaks["width"][2]
-        x12_res = scipy.optimize.minimize(
-            _double_erf_overlap, np.mean([x1, x2]),
-            args=(a1, a2, x1, x2, w1, w2)
+    if len(hist) < 16:
+        raise RuntimeError(
+            "`analyze_emission_histogram`: Invalid histogram resolution"
         )
-        x12 = x12_res.x[0]
+    # Analyze background peak
+    # 1. Find single most prominent peak
+    # 2. Fit (multiple) skew Gaussians to it
+    bg_peaks = find_peaks_1d_prominence(hist, npeaks=1, rel_prominence=0)
+    try:
+        bg_ad = bg_peaks["data"][0]
+    except IndexError:
+        raise RuntimeError("Could not find background peak")
+    bg_pi = analyze_single_peak(bg_ad, max_subpeaks=0)
+    if bg_pi is None:
+        LOGGER.info(
+            "`analyze_emission_histogram`: "
+            "Increase function evaluations to fit background peak"
+        )
+        bg_pi = analyze_single_peak(bg_ad, max_subpeaks=0, maxfev=100000)
+        if bg_pi is None:
+            raise RuntimeError("Could not fit background peak")
+    # Determine analysis strategy: fit signal peak vs threshold background
+    # 1. Filter histogram to get a smooth function
+    # 2. Check whether a second peak is visible with sufficient prominence
+    # 3. Check that the most prominent peak is the background edge peak
+    # 4. If both are true, a fit of the signal peak can be used
+    if strat is None:
+        strat_hist = hist.copy()
+        strat_hist.data = scipy.ndimage.uniform_filter(
+            strat_hist.data, size=len(strat_hist)//strat_size, mode="nearest"
+        )
+        strat_idx = hist.cv_quantity_to_index(bg_pi.base[1], 0)
+        strat_hist = strat_hist[strat_idx:]
+        strat_peaks = find_peaks_1d_prominence(
+            strat_hist, npeaks=None, rel_prominence=strat_prominence,
+            base_prominence_ratio=0, edge_peaks=True
+        )
+        if (
+            len(strat_peaks["data"]) <= 1 or
+            strat_peaks["data"][0].cv_quantity_to_index(
+                strat_peaks["position"][0], 0
+            ) <= 2
+        ):
+            strat = "sfit"
+        else:
+            strat = "bgth"
+    LOGGER.debug(f"`analyze_emission_histogram`: using strategy {strat}")
+
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Strategy: signal fit
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++
+    if strat == "sfit":
+        # Crop histogram to start from right base of background peak
+        sfit_idx = hist.cv_quantity_to_index(
+            sfit_idx_center_ratio * bg_pi.center
+            + (1 - sfit_idx_center_ratio) * bg_pi.base[1], 0
+        )
+        sfit_hist = hist[max(sfit_idx - 2, 0):]
+        # If extremely narrow peak, broaden for more consistent performance
+        bg_idx = [bg_pi.data.cv_quantity_to_index(_b, 0) for _b in bg_pi.base]
+        if bg_idx[1] - bg_idx[0] < 7:
+            sfit_hist.data = scipy.ndimage.gaussian_filter(
+                sfit_hist.data, sfit_filter * 0.7
+            )
+        sfit_peaks = find_peaks_1d_prominence(
+            sfit_hist, npeaks=2, rel_prominence=0,
+            base_prominence_ratio=0, edge_peaks=True
+        )
+        # Order by peak position
+        n0_ad, n1_ad = [
+            sfit_peaks["data"][i]
+            for i in np.argsort(sfit_peaks["position"])
+        ]
+        n1_ad = sfit_hist[len(n0_ad):]
+        _pi = [p for p in bg_pi.iter_peaks()][-1]
+        n0_pi, n1_pi = None, None
+        # Background: Try skew Gaussian fit
+        if len(n0_ad) >= 5:
+            n0_pi = analyze_single_peak(
+                n0_ad, x0=_pi.center, p0=_pi.fit.get_popt()
+            )
+        # Background: Try non-skewed Gaussian fit
+        if n0_pi is None:
+            n0_pi = analyze_single_peak(
+                n0_ad, x0=_pi.center, alpha=0, p0=_pi.fit.get_popt()
+            )
+        # Signal: Try skew Gaussian fit
+        if len(n1_ad) >= 5:
+            n1_pi = analyze_single_peak(n1_ad)
+            # Signal: Try non-skewed Gaussian fit if weird width
+            if (
+                n1_pi is None or
+                n1_pi.width > (n1_pi.data[-1] - n1_pi.data[0]) * 2
+            ):
+                n1_pi = analyze_single_peak(n1_ad, alpha=0)
+
+        # Handling if fits did not succeed
+        if n0_pi is None or n1_pi is None:
+            LOGGER.info(
+                "`analyze_emission_histogram`: Initial signal fit failed"
+            )
+            # Provide more background peak data for fit
+            if len(n0_ad) <= 4:
+                sfit_idx = max(sfit_idx - (5 - len(n0_ad)), 0)
+            # Filter data for more reliable fitting
+            sfit_hist = hist[sfit_idx:]
+            sfit_hist.data = scipy.ndimage.gaussian_filter(
+                sfit_hist.data, sfit_filter
+            )
+            # Perform same analysis again
+            sfit_peaks = find_peaks_1d_prominence(
+                sfit_hist, npeaks=2, rel_prominence=0,
+                base_prominence_ratio=0, edge_peaks=True
+            )
+            n0_ad, n1_ad = [
+                sfit_peaks["data"][i]
+                for i in np.argsort(sfit_peaks["position"])
+            ]
+            n1_ad = sfit_hist[len(n0_ad):]
+            # Check if each peak data has sufficient data points
+            if len(n0_ad) < 5:
+                _idx = sfit_hist.cv_quantity_to_index(n0_ad[-1], 0)
+                n0_ad = sfit_hist[0:max(_idx, 5)]
+            if len(n1_ad) < 5:
+                _idxs = [
+                    sfit_hist.cv_quantity_to_index(n1_ad[0], 0),
+                    sfit_hist.cv_quantity_to_index(n1_ad[-1], 0)
+                ]
+                _idxs[0] -= (1 + 5 - len(n1_ad)) // 2
+                _idxs[1] = max(_idxs[1], _idxs[0] + 5)
+                n1_ad = sfit_hist[_idxs[0]:_idxs[1]]
+            # Gaussian fits
+            n0_pi = analyze_single_peak(
+                n0_ad, x0=_pi.center, alpha=0, p0=_pi.fit.get_popt()
+            )
+            n1_pi = analyze_single_peak(n1_ad, alpha=0)
+            if n0_pi is None or n1_pi is None:
+                LOGGER.warning(
+                    "`analyze_emission_histogram`: Signal fit failed. "
+                    "Trying background thresholding."
+                )
+                return analyze_emission_histogram(
+                    hist, strat="bgth",
+                    bgth_signal_err_num=bgth_signal_err_num
+                )
+        # Perform state separation
+        n01_thr, n0_err, n1_err = n0_pi.separation_loc(n0_pi, n1_pi)
+        n0_center, n1_center = n0_pi.center, n1_pi.center
+        n2_center = n0_center + 2 * n1_center
+        n12_thr = (
+            sfit_n12_cdf_ratio * n1_pi.distribution.isf(
+                n1_pi.distribution.cdf(n01_thr)
+            ) + (1 - sfit_n12_cdf_ratio) * (2 * n1_center - n01_thr)
+        )
+
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Strategy: background threshold
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++
+    elif strat == "bgth":
+        # Minimize false positive rate
+        n0_pi = bg_pi
+        n0_center = n0_pi.center
+        n01_thr = n0_pi.distribution.isf(
+            bgth_signal_err_num / n0_pi.distribution_amplitude
+        )
+        # Estimate signal distribution from statistics
+        n12_thr = 3 * n01_thr - 2 * n0_center
+        _idxs = [
+            hist.cv_quantity_to_index(n01_thr, 0),
+            hist.cv_quantity_to_index(n12_thr, 0)
+        ]
+        _hist = hist[_idxs[0]:_idxs[1]]
+        _pmf = np.array(_hist)
+        _pmf /= np.sum(_pmf)
+        _mean = np.sum(_pmf * _hist.get_points(0))
+        _std = np.sqrt(np.sum(_pmf * _hist.get_points(0)**2) - _mean**2)
+        _amp = np.sum(_hist)
+        # Create signal peak information object
+        model = FitGaussian1d()
+        model.find_p0(_hist)
+        model.set_p0(a=_amp/np.sqrt(2*np.pi), x0=_mean, wx=_std, c=0)
+        n1_pi = PeakInfo(
+            data=_hist, fit=model, center=_mean, width=_std,
+            base=(n01_thr, n12_thr), subpeak=None
+        )
+        # Calculate errors
+        n0_err = n0_pi.sf(n01_thr)
+        n1_err = n1_pi.cdf(n01_thr)
+        n1_center = n1_pi.center
+        n2_center = 2 * n1_center - n0_center
+
     else:
-        x2 = 2 * x1 - x0
-        x12 = 2 * x1 - x01
-    # Package result
-    err01 = a1 * _erf_probability(x01, x1, w1)
-    if has_second_peak:
-        err12 = a2 * _erf_probability(x12, x2, w2)
-    else:
-        err12 = a1 * (1 - _erf_probability(x12, x1, w1))
-    _h = np.array(hist)
-    emissions_num0 = np.sum(_h[hist.get_points(0) < x01])
-    emissions_num1 = np.sum(_h[
-        (hist.get_points(0) >= x01) & (hist.get_points(0) <= x12)
+        raise RuntimeError(f"Invalid `strat` {str(strat)}")
+
+    # Package results
+    n0_num = np.sum(hist.data[hist.get_points(0) < n01_thr])
+    n1_num = np.sum(hist.data[
+        (hist.get_points(0) >= n01_thr)
+        & (hist.get_points(0) < n12_thr)
     ])
-    emissions_num2 = np.sum(_h[hist.get_points(0) > x12])
+    n2_num = np.sum(hist.data[hist.get_points(0) >= n12_thr])
     return {
-        "center": [x0, x1, x2],
-        "threshold": [x01, x12],
-        "error_num": [err01, err12],
-        "emission_num": [emissions_num0, emissions_num1, emissions_num2]
+        "center": [n0_center, n1_center, n2_center],
+        "threshold": [n01_thr, n12_thr],
+        "error_prob": [n0_err, n1_err],
+        "error_num": [n0_err * n0_num, n1_err * n1_num],
+        "emission_num": [n0_num, n1_num, n2_num],
+        "peak_info": [n0_pi, n1_pi]
     }
 
 
@@ -303,10 +487,14 @@ class ReconstructionResult(io.FileBase):
         Projected center value for the states.
     hist_threshold : `[float, float]`
         State discrimination threshold of projected values.
+    hist_error_prob : `[float, float]`
+        False negative/positive probability for first threshold
     hist_error_num : `[float, float]`
-        False negative/positive number at thresholds.
+        False negative/positive number for first threshold.
     hist_emission_num : `[int, int, int]`
         Number of sites associated to each state.
+    hist_peak_info : `[PeakInfo, PeakInfo]`
+        Detailed histogram peak information.
 
     Notes
     -----
@@ -319,7 +507,8 @@ class ReconstructionResult(io.FileBase):
     _attributes = {
         "trafo", "emissions", "state", "label_center",
         "histogram", "hist_center", "hist_threshold",
-        "hist_error_num", "hist_emission_num", "success"
+        "hist_error_prob", "hist_error_num", "hist_emission_num",
+        "hist_peak_info", "success"
     }
 
     LOGGER = get_logger("srec.ReconstructionResult")
@@ -576,8 +765,10 @@ class StateEstimator:
             res.update(dict(
                 hist_center=histogram_data["center"],
                 hist_threshold=histogram_data["threshold"],
+                hist_error_prob=histogram_data["error_prob"],
                 hist_error_num=histogram_data["error_num"],
                 hist_emission_num=histogram_data["emission_num"],
+                hist_peak_info=histogram_data["peak_info"],
                 state=state
             ))
         res = ReconstructionResult(**res)
