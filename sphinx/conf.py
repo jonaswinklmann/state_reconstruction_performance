@@ -62,7 +62,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -71,6 +71,8 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
+
+add_module_names = False
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -132,7 +134,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'state_reconstruction.tex', 'state_reconstruction documentation', 'state_reconstruction', 'manual'),
+    (master_doc, 'state_reconstruction.tex', 'Documentation of state\_reconstruction', author, 'manual'),
 ]
 
 
@@ -152,7 +154,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'state_reconstruction', 'state_reconstruction Documentation',
-     author, 'state_reconstruction', 'Quantum state reconstruction from atomic fluorescence images.',
+    (master_doc, 'state_reconstruction', 'Documentation of state\_reconstruction',
+     author, 'state\_reconstruction', 'Quantum state reconstruction from atomic fluorescence images.',
      'measurement, analysis'),
 ]
