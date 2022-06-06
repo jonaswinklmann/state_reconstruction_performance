@@ -153,8 +153,8 @@ def get_emission_histogram(
 
 def analyze_emission_histogram(
     hist, strat=None, strat_size=20, strat_prominence=0.08,
-    sfit_idx_center_ratio=0.1, sfit_filter=1., sfit_n12_cdf_ratio=0.5,
-    bgth_signal_err_num=0.1
+    sfit_idx_center_ratio=0.1, sfit_filter=1.,
+    bgth_signal_err_num=0.1, n12_err_num=0.1
 ):
     """
     Gets state discrimination thresholds from projected images.
@@ -189,26 +189,26 @@ def analyze_emission_histogram(
     sfit_filter : `float`
         If the raw signal could not be fitted, a second fit is applied on
         Gaussian filtered data. This parameter selects the filtering width.
-    sfit_n12_cdf_ratio : `float`
-        The is threshold between state 1 and 2 is determined either by
-        the same cumulative probability (A) or by the same distance from the
-        signal center (B). This parameter allows to average between both
-        options, where `0` corresponds to fully (B) and `1` to (A).
     bgth_signal_err_num : `float`
         Absolute false positive rate for background thresholding.
         In the typical use case, there are only few signal counts, so
         selecting a small value is advisable.
         If this strategy is used for a larger signal count, consider
         using a larger rate.
+    n12_err_num : `float`
+        Absolute false positive rate for signal thresholding (between
+        states `1` and `2`). Works analogously to `bgth_signal_err_num`.
 
     Returns
     -------
     ret : `dict(str->Any)`
         Returns a dictionary containing the following items:
-    center : `[float, float, float]`
-        Peak centers.
+    strat : `str`
+        Which peak analysis strategy was chosen (see: `strat`).
+    center : `[float, float]`
+        Peak centers for states `0` and `1`.
     threshold : `[float, float]`
-        State thresholds.
+        State thresholds between states `0/1` and `1/2`.
     error_prob : `[float, float]`
         False positive/negative rates for states `0` and `1`
     error_num : `[float, float]`
@@ -216,7 +216,7 @@ def analyze_emission_histogram(
         In contrast to the normalized `error_prob` parameter,
         this number takes `emission_num` into account.
     emission_num : `[float, float, float]`
-        Number of sites mapped to the different states.
+        Number of sites mapped to the states `0`, `1` and `2`.
     peak_info : `[PeakInfo, PeakInfo]`
         Detailed peak information for states `0` and `1`.
     """
@@ -368,12 +368,6 @@ def analyze_emission_histogram(
         # Perform state separation
         n01_thr, n0_err, n1_err = n0_pi.separation_loc(n0_pi, n1_pi)
         n0_center, n1_center = n0_pi.center, n1_pi.center
-        n2_center = n0_center + 2 * n1_center
-        n12_thr = (
-            sfit_n12_cdf_ratio * n1_pi.distribution.isf(
-                n1_pi.distribution.cdf(n01_thr)
-            ) + (1 - sfit_n12_cdf_ratio) * (2 * n1_center - n01_thr)
-        )
 
     # +++++++++++++++++++++++++++++++++++++++++++++++++++
     # Strategy: background threshold
@@ -409,10 +403,13 @@ def analyze_emission_histogram(
         n0_err = n0_pi.sf(n01_thr)
         n1_err = n1_pi.cdf(n01_thr)
         n1_center = n1_pi.center
-        n2_center = 2 * n1_center - n0_center
 
     else:
         raise RuntimeError(f"Invalid `strat` {str(strat)}")
+
+    n12_thr = n1_pi.distribution.isf(
+        n12_err_num / n1_pi.distribution_amplitude
+    )
 
     # Package results
     n0_num = np.sum(hist.data[hist.get_points(0) < n01_thr])
@@ -422,7 +419,8 @@ def analyze_emission_histogram(
     ])
     n2_num = np.sum(hist.data[hist.get_points(0) >= n12_thr])
     return {
-        "center": [n0_center, n1_center, n2_center],
+        "strat": strat,
+        "center": [n0_center, n1_center],
         "threshold": [n01_thr, n12_thr],
         "error_prob": [n0_err, n1_err],
         "error_num": [n0_err * n0_num, n1_err * n1_num],
@@ -460,6 +458,51 @@ def get_state_estimate(emissions, thresholds):
     return state
 
 
+class EmissionHistogramAnalysis:
+
+    """
+    Container class for emission histogram analysis functions.
+
+    See the respective functions for parameter details:
+
+    * :py:func:`get_emission_histogram`
+    * :py:func:`analyze_emission_histogram`
+    """
+
+    def __init__(
+        self, bin_range=None, strat_size=20, strat_prominence=0.08,
+        sfit_idx_center_ratio=0.1, sfit_filter=1., n12_err_num=0.1,
+        bgth_signal_err_num=0.1
+    ):
+        # Histogram parameters
+        self.bin_range = bin_range
+        # Analysis strategy
+        self.strat_size = strat_size
+        self.strat_prominence = strat_prominence
+        # Signal fit
+        self.sfit_idx_center_ratio = sfit_idx_center_ratio
+        self.sfit_filter = sfit_filter
+        self.n12_err_num = n12_err_num
+        # Background threshold
+        self.bgth_signal_err_num = bgth_signal_err_num
+
+    def get_emission_histogram(self, emissions):
+        return get_emission_histogram(emissions, self.bin_range)
+
+    def analyze_emission_histogram(self, hist):
+        return analyze_emission_histogram(
+            hist,
+            strat_size=self.strat_size, strat_prominence=self.strat_prominence,
+            sfit_idx_center_ratio=self.sfit_idx_center_ratio,
+            sfit_filter=self.sfit_filter,
+            n12_err_num=self.n12_err_num,
+            bgth_signal_err_num=self.bgth_signal_err_num
+        )
+
+    def get_state_estimate(self, emissions, thresholds):
+        return get_state_estimate(emissions, thresholds)
+
+
 ###############################################################################
 # State estimator
 ###############################################################################
@@ -483,6 +526,9 @@ class ReconstructionResult(io.FileBase):
         Dimensions: `[n_atoms, ndim]`.
     histogram : `ArrayData(1, float)`
         Histogram of projected values.
+    hist_strat : `str`
+        Histogram peak analysis strategy. Options: `"sfit", "bgth"`.
+        See :py:func:`analyze_emission_histogram` for details.
     hist_center : `[float, float, float]`
         Projected center value for the states.
     hist_threshold : `[float, float]`
@@ -506,7 +552,7 @@ class ReconstructionResult(io.FileBase):
 
     _attributes = {
         "trafo", "emissions", "state", "label_center",
-        "histogram", "hist_center", "hist_threshold",
+        "histogram", "hist_strat", "hist_center", "hist_threshold",
         "hist_error_prob", "hist_error_num", "hist_emission_num",
         "hist_peak_info", "success"
     }
@@ -600,6 +646,8 @@ class StateEstimator:
         Transformation phase reference points in sites and image space.
     sites_shape : `(int, int)`
         Shape of 2D array representing lattice sites.
+    emission_histogram_analysis : `EmissionHistogramAnalysis`
+        Emission histogram analysis object.
 
     Examples
     --------
@@ -633,7 +681,8 @@ class StateEstimator:
         isolated_locator=None,
         trafo_site_to_image=None,
         phase_ref_site=(0, 0), phase_ref_image=(169, 84),
-        sites_shape=(170, 170)
+        sites_shape=(170, 170),
+        emission_histogram_analysis=None
     ):
         self.projector_generator = projector_generator
         self.isolated_locator = isolated_locator
@@ -641,6 +690,7 @@ class StateEstimator:
         self.phase_ref_image = phase_ref_image
         self.trafo_site_to_image = trafo_site_to_image
         self.sites_shape = sites_shape
+        self.emission_histogram_analysis = emission_histogram_analysis
 
     def setup(self, print_progress=True):
         """
@@ -658,6 +708,8 @@ class StateEstimator:
         if not self.projector_generator.proj_cache_built:
             self.LOGGER.info("Building `projector_generator` cache")
             self.projector_generator.setup_cache(print_progress=print_progress)
+        if self.emission_histogram_analysis is None:
+            self.emission_histogram_analysis = EmissionHistogramAnalysis()
         return True
 
     @property
@@ -744,13 +796,18 @@ class StateEstimator:
         )
         emissions.data[emissions_mask] = local_emissions
         # Perform histogram analysis for state discrimination
-        histogram = get_emission_histogram(local_emissions)
+        eha = self.emission_histogram_analysis
+        histogram = eha.get_emission_histogram(local_emissions)
         try:
-            histogram_data = analyze_emission_histogram(histogram)
-            state = get_state_estimate(emissions, histogram_data["threshold"])
+            histogram_data = eha.analyze_emission_histogram(histogram)
+            state = eha.get_state_estimate(
+                emissions, histogram_data["threshold"]
+            )
             state_estimation_success = True
-        except (RuntimeError, IndexError):
-            self.LOGGER.error("emission histogram analysis failed")
+        except (RuntimeError, IndexError, ValueError) as e:
+            self.LOGGER.error(
+                f"Emission histogram analysis failed: {str(e)}"
+            )
             histogram_data = None
             state_estimation_success = False
         # Package result
