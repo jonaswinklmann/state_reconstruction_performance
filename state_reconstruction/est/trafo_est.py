@@ -606,14 +606,23 @@ def get_subimage_emission_std(
         np.meshgrid(*subsite_1d, indexing="ij"), 0, -1
     )
     subsite_coords = np.reshape(subsite_coords, (-1, 2))
-    # Find local images
+    # Find coordinates
     _trafo = get_shifted_subimage_trafo(
         tmp_prjgen.trafo_site_to_image, shift, subimage_center, site=(0, 0)
     )
-    subimage_coords = _trafo.coord_to_target(subsite_coords)
+    subimage_coords = _trafo.coord_to_target(subsite_coords).T
+    # Keep only sites within image
+    _half_proj_shape = np.array(prjgen.proj_shape) // 2
+    mask = np.logical_and.reduce([
+        (subimage_coords[i] > _half_proj_shape[i] + 1)
+        & (subimage_coords[i] < full_image.shape[i] - _half_proj_shape[i] - 1)
+        for i in range(2)
+    ])
+    subimage_coords = np.array([_c[mask] for _c in subimage_coords])
+    # Find local images
     tmp_prjgen.trafo_site_to_image = _trafo
     local_images = get_local_images(
-        *subimage_coords.T, full_image, tmp_prjgen.proj_shape,
+        *subimage_coords, full_image, tmp_prjgen.proj_shape,
         psf_supersample=tmp_prjgen.psf_supersample
     )
     # Perform projection

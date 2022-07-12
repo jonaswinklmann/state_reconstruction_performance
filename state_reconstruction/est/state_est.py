@@ -6,6 +6,7 @@ Assigns emission states to projections.
 
 import json
 import PIL
+import matplotlib as mpl
 import numpy as np
 import scipy.optimize
 import scipy.ndimage
@@ -17,6 +18,7 @@ from libics.tools.math.peaked import FitGaussian1d
 from libics.tools.math.signal import (
     find_histogram, find_peaks_1d_prominence, analyze_single_peak, PeakInfo
 )
+from libics.tools import plot
 
 from state_reconstruction.gen import trafo_gen, image_gen
 from .proj_est import get_local_images, apply_projectors
@@ -292,18 +294,37 @@ def analyze_emission_histogram(
         n01_thr = n0_pi.distribution.isf(
             bgth_signal_err_num / n0_pi.distribution_amplitude
         )
-        # Estimate signal distribution from statistics
-        n12_thr = 3 * n01_thr - 2 * n0_center
-        _idxs = [
-            hist.cv_quantity_to_index(n01_thr, 0),
-            hist.cv_quantity_to_index(n12_thr, 0)
-        ]
-        _hist = hist[_idxs[0]:_idxs[1]]
+        # Check for zero atoms
+        _hist = hist[hist.cv_quantity_to_index(n01_thr, 0):]
         _pmf = np.array(_hist, dtype=float)
-        _pmf /= np.sum(_pmf)
-        _mean = np.sum(_pmf * _hist.get_points(0))
-        _std = np.sqrt(np.sum(_pmf * _hist.get_points(0)**2) - _mean**2)
-        _amp = np.sum(_hist)
+        _sum = np.sum(_pmf)
+        if np.isclose(_sum, 0) or len(_hist) < 2:
+            LOGGER.debug("`analyze_emission_histogram`: no atoms found.")
+            n1_center = 2 * n01_thr - n0_center
+            n12_thr = 3 * n01_thr - 2 * n0_center
+            _mean = n1_center
+            _std = hist.get_step(0)
+            _amp = 0.1
+        else:
+            # Find n1_center by median
+            _pmf = _pmf / _sum
+            _cmf = np.array([np.sum(_pmf[:i + 1]) for i in range(len(_pmf))])
+            _idx_median = np.argmin(abs(_cmf - 0.51))  # >0.5 to not round to 0
+            n1_center = _hist.get_points(0)[_idx_median]
+            # Estimate signal distribution from statistics
+            n12_thr = 2 * n1_center - n01_thr
+            _idxs = [
+                hist.cv_quantity_to_index(n01_thr, 0),
+                hist.cv_quantity_to_index(n12_thr, 0) + 1
+            ]
+            _hist = hist[_idxs[0]:_idxs[1]]
+            _pmf = np.array(_hist, dtype=float)
+            _pmf /= np.sum(_pmf)
+            _mean = np.sum(_pmf * _hist.get_points(0))
+            _std = np.sqrt(np.sum(_pmf * _hist.get_points(0)**2) - _mean**2)
+            if np.isclose(_std, 0):
+                _std = _hist.get_step(0)
+            _amp = np.sum(_hist)
         # Create signal peak information object
         model = FitGaussian1d()
         model.find_p0(_hist)
@@ -895,6 +916,8 @@ class StateEstimator:
             Image coordinates of occupied/empty sites.
         emissions_occupied, emissions_empty : `np.ndarray(1, float)`
             Corresponding emissions.
+        background : `ArrayData(2, np.nan)`
+            Dummy background.
         """
         # Parse parameters
         if res.success is not True:
@@ -920,9 +943,105 @@ class StateEstimator:
         ])
         emissions_occupied = emissions_masked[mask_occupied]
         emissions_empty = emissions_masked[~mask_occupied]
+        # Set up dummy background
+        bg = ArrayData(np.full((2, 2), np.nan))
+        bg.set_data_quantity(name="projected emission")
+        for i, size in enumerate(image_shape):
+            bg.set_dim(i, points=[0, size])
         return {
             "image_coords_occupied": image_coords_occupied,
             "emissions_occupied": emissions_occupied,
             "image_coords_empty": image_coords_empty,
             "emissions_empty": emissions_empty,
+            "background": bg
         }
+
+
+###############################################################################
+# Plotting reconstruction results
+###############################################################################
+
+
+def plot_reconstructed_emissions(
+    res=None, image_coords_occupied=None, emissions_occupied=None,
+    image_coords_empty=None, background=None,
+    ax=None, cmap="plasma", size_occupied=12, color_empty="grey", size_empty=1,
+    **kwargs
+):
+    # Parse parameters
+    if emissions_occupied is None:
+        raise ValueError("No `emissions_occupied` available")
+    if ax is None:
+        ax = plot.gca()
+    if res is not None:
+        vmin = res.hist_threshold[0]
+        vcenter = res.hist_center[1]
+        vdif = vcenter - vmin
+    else:
+        vmin, vmax = np.min(emissions_occupied), np.max(emissions_occupied)
+        vdif = (vmax - vmin) / 2
+    if vdif == 0:
+        vdif = 1
+    if isinstance(cmap, str):
+        cmap = mpl.cm.get_cmap(name=cmap)
+    # Plot background (for colorbar)
+    if background is not None:
+        plot.pcolorim(
+            background, ax=ax, cmap=cmap,
+            vmin=vmin, vmax=vmin+2*vdif, colorbar=True
+        )
+    # Plot empty sites
+    if image_coords_empty is not None:
+        ax.scatter(*image_coords_empty, s=size_empty, color=color_empty)
+    # Plot occupied sites
+    colors_occupied = cmap((emissions_occupied - vmin) / 2 / vdif)
+    ax.scatter(*image_coords_occupied, c=colors_occupied, s=size_occupied)
+
+
+def plot_reconstructed_histogram(
+    res, rel_margin=0.05,
+    size_histogram=5, color_histogram="grey", alpha_histogram=0.3,
+    colors_fit=["C1", "C2"], linewidth_fit=2, color_thr="black",
+    min_ymax=15,
+    ax=None
+):
+    # Parse parameters
+    if ax is None:
+        ax = plot.gca()
+    # Plot raw histogram
+    plot.plot(res.histogram, ax=ax, zorder=-5, color=color_histogram)
+    plot.scatter(
+        res.histogram, ax=ax, zorder=0,
+        markersize=size_histogram, color=color_histogram
+    )
+    ax.fill_between(
+        res.histogram.get_points(0), res.histogram, zorder=-10,
+        color=color_histogram, ec=color_histogram, alpha=alpha_histogram
+    )
+    if not res.success:
+        return
+    # Parse results
+    dx = res.hist_threshold[1] - res.hist_center[0]
+    xmin = res.hist_center[0] - rel_margin * dx
+    ymax = max(min_ymax, np.max(res.histogram[
+        res.histogram.cv_quantity_to_index(res.hist_threshold[0], 0):
+    ]))
+    ymin, ymax = -rel_margin * ymax, (1 + rel_margin) * ymax
+    # Plot fits
+    color_n1 = colors_fit[0]
+    color_n2 = colors_fit[1]
+    plot.plot(
+        res.hist_peak_info[0].get_model_data(), ax=ax, zorder=-2,
+        linewidth=linewidth_fit, color=color_n1
+    )
+    if res.hist_strat == "sfit":
+        plot.plot(
+            res.hist_peak_info[1].get_model_data(), ax=ax, zorder=-2,
+            linewidth=linewidth_fit, color=color_n2
+        )
+    ax.axvline(res.hist_center[0], color=color_n1)
+    ax.axvline(res.hist_center[1], color=color_n2)
+    ax.axvline(res.hist_threshold[0], color=color_thr)
+    ax.axvline(res.hist_threshold[1], color=color_thr)
+    # Axes properties
+    plot.style_axes(ax=ax, ymin=ymin, ymax=ymax, xmin=xmin)

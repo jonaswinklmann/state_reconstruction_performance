@@ -19,5 +19,6 @@ from .est.iso_est import IsolatedLocator
 from .est.psf_est import SupersamplePsfEstimator
 from .est.trafo_est import TrafoEstimator, get_trafo_phase_from_projections
 from .est.state_est import (
-    StateEstimator, ReconstructionResult, EmissionHistogramAnalysis
+    StateEstimator, ReconstructionResult, EmissionHistogramAnalysis,
+    plot_reconstructed_emissions, plot_reconstructed_histogram
 )
