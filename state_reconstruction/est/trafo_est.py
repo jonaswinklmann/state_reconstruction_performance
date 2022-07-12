@@ -572,7 +572,7 @@ def get_shifted_subimage_trafo(trafo, shift, subimage_center, site=(0, 0)):
     return shifted_trafo
 
 
-def get_subsite_shape(prjgen, subimage_shape, min_shape=(5, 5)):
+def get_subsite_shape(prjgen, subimage_shape, min_shape=(3, 3)):
     """
     Gets the default subimage sites shape.
     """
@@ -621,7 +621,10 @@ def get_subimage_emission_std(
     return np.std(emissions)
 
 
-def get_trafo_phase_from_projections(im, prjgen, phase_ref_image=(0, 0)):
+def get_trafo_phase_from_projections(
+    im, prjgen, phase_ref_image=(0, 0),
+    subimage_shape=None, subsite_shape=None, search_range=1
+):
     """
     Gets the lattice phase by maximizing the emission standard deviation.
 
@@ -633,13 +636,22 @@ def get_trafo_phase_from_projections(im, prjgen, phase_ref_image=(0, 0)):
         Projection generator object.
     phase_ref_image : `(int, int)`
         Lattice phase reference in fluorescence image coordinates.
+    subimage_shape : `(int, int)` or `None`
+        Shape of subimages (subdivisions of full image) used for
+        standard deviation evaluation.
+    subsite_shape : `(int, int)` or `None`
+        Shape of sites used for projection.
+    search_range : `int`
+        Discrete optimization search range.
+        See :py:func:`libics.tools.math.optimize.minimize_discrete_stepwise`.
 
     Returns
     -------
     phase : `np.ndarray(1, float)`
         Phase (residual) of lattice w.r.t. to image coordinates (0, 0).
     """
-    subimage_shape = np.copy(prjgen.proj_shape)
+    if subimage_shape is None:
+        subimage_shape = np.copy(prjgen.psf_shape)
     crop_shape = (np.array(im.shape) // subimage_shape) * subimage_shape
     crop_im = im[tuple(slice(None, _s) for _s in crop_shape)]
     grid_shape = crop_shape // subimage_shape
@@ -652,19 +664,21 @@ def get_trafo_phase_from_projections(im, prjgen, phase_ref_image=(0, 0)):
     idx = np.unravel_index(np.argmax(subimages_std), subimages_std.shape)
     subimage_center = ((np.array(idx) + 0.5) * subimage_shape).astype(int)
 
-    subsite_shape = get_subsite_shape(prjgen, subimage_shape)
+    if subsite_shape is None:
+        subsite_shape = get_subsite_shape(prjgen, subimage_shape)
     init_shift = [0, 0]
     opt_shift_int, results_cache = maximize_discrete_stepwise(
         get_subimage_emission_std, init_shift,
         args=(subimage_center, im, prjgen),
         kwargs=dict(subsite_shape=subsite_shape),
-        dx=1, ret_cache=True
+        dx=1, search_range=search_range, ret_cache=True
     )
     opt_shift_float = maximize_discrete_stepwise(
         get_subimage_emission_std, opt_shift_int,
         args=(subimage_center, im, prjgen),
         kwargs=dict(subsite_shape=subsite_shape),
-        dx=1/prjgen.psf_supersample/2, results_cache=results_cache
+        dx=1/prjgen.psf_supersample/2, search_range=search_range,
+        results_cache=results_cache
     )
     opt_trafo = get_shifted_subimage_trafo(
         prjgen.trafo_site_to_image, opt_shift_float, subimage_center
