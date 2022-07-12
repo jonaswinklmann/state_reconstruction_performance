@@ -5,6 +5,7 @@ Estimates the affine transformation parameters between lattice sites
 and fluorescence image coordinates.
 """
 
+import copy
 import numpy as np
 import scipy.optimize
 import time
@@ -13,9 +14,13 @@ from libics.env.logging import get_logger
 from libics.core.data.arrays import ArrayData
 from libics.core.util import misc
 from libics.tools.trafo.linear import AffineTrafo2d
+from libics.tools.math.optimize import maximize_discrete_stepwise
 from libics.tools.math.signal import find_peaks_1d
 from libics.tools.math.models import ModelBase
 from libics.tools.math.peaked import FitGaussian1d, gaussian_1d, FitParabolic1d
+
+from state_reconstruction.gen import trafo_gen
+from .proj_est import get_local_images, apply_projectors
 
 LOGGER = get_logger("srec.trafo_est")
 
@@ -496,6 +501,9 @@ class TrafoEstimator:
 # Transformation phase estimation
 ###############################################################################
 
+# ++++++++++++++++++++++++++++++++++++++++++++++++++
+# From fitted sites
+# ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 def get_trafo_phase_from_points(
     x, y, ref_trafo_site_to_image,
@@ -547,6 +555,124 @@ def get_trafo_phase_from_points(
     phase_std = np.std(phases, axis=0)
     phase_err = phase_std / np.sqrt(phases.shape[1])
     return -phase, phase_err
+
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++
+# From maximizing projection contrast
+# ++++++++++++++++++++++++++++++++++++++++++++++++++
+
+def get_shifted_subimage_trafo(trafo, shift, subimage_center, site=(0, 0)):
+    """
+    Gets the lattice transformation from subimage center and shift.
+    """
+    shifted_trafo = copy.deepcopy(trafo)
+    shifted_trafo.set_offset_by_point_pair(
+        site, np.array(subimage_center) + np.array(shift)
+    )
+    return shifted_trafo
+
+
+def get_subsite_shape(prjgen, subimage_shape, min_shape=(5, 5)):
+    """
+    Gets the default subimage sites shape.
+    """
+    magnification = prjgen.trafo_site_to_image.get_origin_axes()[0]
+    subsite_size = np.round(
+        np.mean(subimage_shape) / np.mean(magnification)
+    ).astype(int)
+    return (
+        max(subsite_size, min_shape[0]),
+        max(subsite_size, min_shape[1])
+    )
+
+
+def get_subimage_emission_std(
+    shift, subimage_center, full_image, prjgen, subsite_shape=(5, 5)
+):
+    """
+    Performs projection with given transformation shift and subimage.
+    """
+    # Parse parameters
+    shift = np.array(shift)
+    tmp_prjgen = copy.deepcopy(prjgen)
+    if np.isscalar(subsite_shape):
+        subsite_shape = (subsite_shape, subsite_shape)
+    # Set sites
+    subsite_1d = [
+        np.arange(-subsite_size // 2, (subsite_size + 1) // 2 + 1)
+        for subsite_size in subsite_shape
+    ]
+    subsite_coords = np.moveaxis(
+        np.meshgrid(*subsite_1d, indexing="ij"), 0, -1
+    )
+    subsite_coords = np.reshape(subsite_coords, (-1, 2))
+    # Find local images
+    _trafo = get_shifted_subimage_trafo(
+        tmp_prjgen.trafo_site_to_image, shift, subimage_center, site=(0, 0)
+    )
+    subimage_coords = _trafo.coord_to_target(subsite_coords)
+    tmp_prjgen.trafo_site_to_image = _trafo
+    local_images = get_local_images(
+        *subimage_coords.T, full_image, tmp_prjgen.proj_shape,
+        psf_supersample=tmp_prjgen.psf_supersample
+    )
+    # Perform projection
+    emissions = apply_projectors(local_images, tmp_prjgen)
+    return np.std(emissions)
+
+
+def get_trafo_phase_from_projections(im, prjgen, phase_ref_image=(0, 0)):
+    """
+    Gets the lattice phase by maximizing the emission standard deviation.
+
+    Parameters
+    ----------
+    im : `Array[2, float]`
+        Fluorescence image.
+    prjgen : `srec.ProjectionGenerator`
+        Projection generator object.
+    phase_ref_image : `(int, int)`
+        Lattice phase reference in fluorescence image coordinates.
+
+    Returns
+    -------
+    phase : `np.ndarray(1, float)`
+        Phase (residual) of lattice w.r.t. to image coordinates (0, 0).
+    """
+    subimage_shape = np.copy(prjgen.proj_shape)
+    crop_shape = (np.array(im.shape) // subimage_shape) * subimage_shape
+    crop_im = im[tuple(slice(None, _s) for _s in crop_shape)]
+    grid_shape = crop_shape // subimage_shape
+
+    subimages = np.reshape(
+        crop_im,
+        (grid_shape[0], subimage_shape[0], grid_shape[1], subimage_shape[1])
+    )
+    subimages_std = np.std(subimages, axis=(1, 3))
+    idx = np.unravel_index(np.argmax(subimages_std), subimages_std.shape)
+    subimage_center = ((np.array(idx) + 0.5) * subimage_shape).astype(int)
+
+    subsite_shape = get_subsite_shape(prjgen, subimage_shape)
+    init_shift = [0, 0]
+    opt_shift_int, results_cache = maximize_discrete_stepwise(
+        get_subimage_emission_std, init_shift,
+        args=(subimage_center, im, prjgen),
+        kwargs=dict(subsite_shape=subsite_shape),
+        dx=1, ret_cache=True
+    )
+    opt_shift_float = maximize_discrete_stepwise(
+        get_subimage_emission_std, opt_shift_int,
+        args=(subimage_center, im, prjgen),
+        kwargs=dict(subsite_shape=subsite_shape),
+        dx=1/prjgen.psf_supersample/2, results_cache=results_cache
+    )
+    opt_trafo = get_shifted_subimage_trafo(
+        prjgen.trafo_site_to_image, opt_shift_float, subimage_center
+    )
+    phase, _ = trafo_gen.get_phase_from_trafo_site_to_image(
+        opt_trafo, phase_ref_image=phase_ref_image
+    )
+    return phase
 
 
 ###############################################################################
