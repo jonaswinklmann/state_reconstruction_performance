@@ -370,6 +370,18 @@ class ProjectorGenerator(AttrHashBase):
         self.proj_fidelity = None
         self.proj_positivity = None
 
+    def get_attr_str(self):
+        keys = ["rel_embedding_size", "proj_cache_built", "proj_positivity"]
+        s = [f" → {k}: {str(getattr(self, k))}" for k in keys]
+        return "\n".join(s)
+
+    def __str__(self):
+        return f"{self.__class__.__name__}:\n{self.get_attr_str()}"
+
+    def __repr__(self):
+        s = f"<'{self.__class__.__name__}' at {hex(id(self))}>"
+        return f"{s}\n{self.get_attr_str()}"
+
     @property
     def psf_supersample(self):
         return self.integrated_psf_generator.psf_supersample

@@ -20,7 +20,9 @@ from libics.tools.math.signal import (
 
 from state_reconstruction.gen import trafo_gen
 from .proj_est import get_local_images, apply_projectors
-from .trafo_est import get_trafo_phase_from_points
+from .trafo_est import (
+    get_trafo_phase_from_points, get_trafo_phase_from_projections
+)
 
 LOGGER = get_logger("srec.est.state_est")
 
@@ -64,7 +66,7 @@ def get_emission_histogram(
 def analyze_emission_histogram(
     hist, strat=None, strat_size=20, strat_prominence=0.08,
     sfit_idx_center_ratio=0.1, sfit_filter=1.,
-    bgth_signal_err_num=0.1, n12_err_num=0.1
+    bgth_signal_err_num=0.1, n12_err_num=None
 ):
     """
     Gets state discrimination thresholds from projected images.
@@ -105,9 +107,10 @@ def analyze_emission_histogram(
         selecting a small value is advisable.
         If this strategy is used for a larger signal count, consider
         using a larger rate.
-    n12_err_num : `float`
+    n12_err_num : `float` or `None`
         Absolute false positive rate for signal thresholding (between
         states `1` and `2`). Works analogously to `bgth_signal_err_num`.
+        If `None`, uses the error on the other boundary (`n01_err_num`).
 
     Returns
     -------
@@ -296,7 +299,7 @@ def analyze_emission_histogram(
             hist.cv_quantity_to_index(n12_thr, 0)
         ]
         _hist = hist[_idxs[0]:_idxs[1]]
-        _pmf = np.array(_hist)
+        _pmf = np.array(_hist, dtype=float)
         _pmf /= np.sum(_pmf)
         _mean = np.sum(_pmf * _hist.get_points(0))
         _std = np.sqrt(np.sum(_pmf * _hist.get_points(0)**2) - _mean**2)
@@ -310,16 +313,18 @@ def analyze_emission_histogram(
             base=(n01_thr, n12_thr), subpeak=None
         )
         # Calculate errors
-        n0_err = n0_pi.sf(n01_thr)
-        n1_err = n1_pi.cdf(n01_thr)
+        n0_err = n0_pi.distribution.sf(n01_thr)
+        n1_err = n1_pi.distribution.cdf(n01_thr)
         n1_center = n1_pi.center
 
     else:
         raise RuntimeError(f"Invalid `strat` {str(strat)}")
 
-    n12_thr = n1_pi.distribution.isf(
-        n12_err_num / n1_pi.distribution_amplitude
-    )
+    if n12_err_num is not None:
+        n12_err = n12_err_num / n1_pi.distribution_amplitude
+    else:
+        n12_err = n1_err
+    n12_thr = n1_pi.distribution.isf(n12_err)
 
     # Package results
     n0_num = np.sum(hist.data[hist.get_points(0) < n01_thr])
@@ -381,7 +386,7 @@ class EmissionHistogramAnalysis:
 
     def __init__(
         self, bin_range=None, strat_size=20, strat_prominence=0.08,
-        sfit_idx_center_ratio=0.1, sfit_filter=1., n12_err_num=0.1,
+        sfit_idx_center_ratio=0.1, sfit_filter=1., n12_err_num=None,
         bgth_signal_err_num=0.1
     ):
         # Histogram parameters
@@ -461,7 +466,7 @@ class ReconstructionResult(io.FileBase):
     """
 
     _attributes = {
-        "trafo", "emissions", "state", "label_center",
+        "trafo", "trafo_phase", "emissions", "state",
         "histogram", "hist_strat", "hist_center", "hist_threshold",
         "hist_error_prob", "hist_error_num", "hist_emission_num",
         "hist_peak_info", "success"
@@ -479,6 +484,25 @@ class ReconstructionResult(io.FileBase):
 
     def attributes(self):
         return {k: getattr(self, k) for k in self._attributes}
+
+    def get_attr_str(self):
+        attrs = self.attributes().copy()
+        if self.success:
+            keys = [
+                "trafo_phase", "hist_strat", "hist_center", "hist_threshold",
+                "hist_error_prob", "hist_error_num", "hist_emission_num"
+            ]
+        else:
+            keys = ["trafo_phase", "success"]
+        s = [f" → {k}: {str(attrs[k])}" for k in keys]
+        return "\n".join(s)
+
+    def __str__(self):
+        return f"{self.__class__.__name__}:\n{self.get_attr_str()}"
+
+    def __repr__(self):
+        s = f"<'{self.__class__.__name__}' at {hex(id(self))}>"
+        return f"{s}\n{self.get_attr_str()}"
 
     def save_state(
         self, file_path, fmt=None, flip_orientation=False, **kwargs
@@ -602,6 +626,25 @@ class StateEstimator:
         self.sites_shape = sites_shape
         self.emission_histogram_analysis = emission_histogram_analysis
 
+    def get_attr_str(self):
+        keys = [
+            "trafo_site_to_image", "phase_ref_site",
+            "phase_ref_image", "sites_shape"
+        ]
+        s = [f" → {k}: {str(getattr(self, k))}" for k in keys]
+        s.append(str(self.projector_generator.integrated_psf_generator))
+        s.append(str(self.projector_generator))
+        if self.isolated_locator:
+            s.append(str(self.isolated_locator))
+        return "\n".join(s)
+
+    def __str__(self):
+        return f"{self.__class__.__name__}:\n{self.get_attr_str()}"
+
+    def __repr__(self):
+        s = f"<'{self.__class__.__name__}' at {hex(id(self))}>"
+        return f"{s}\n{self.get_attr_str()}"
+
     def setup(self, print_progress=True):
         """
         Checks that all attributes are set and initializes them.
@@ -646,6 +689,68 @@ class StateEstimator:
     def psf_supersample(self):
         return self.projector_generator.psf_supersample
 
+    def get_phase_shifted_trafo(
+        self, phase=None, image=None, method="projection_optimization"
+    ):
+        """
+        Gets a phase-shifted lattice transformation from an image.
+
+        Parameters
+        ----------
+        phase : `(float, float)`
+            Directly specifies phase. Takes precedence over `image`.
+        image : `Array[2, float]`
+            Image from which to extract lattice transformation.
+        method : `str`
+            Method for determining lattice transformation:
+            `"projection_optimization", "isolated_atoms"`.
+
+        Returns
+        -------
+        new_trafo : `AffineTrafo2d`
+            Phase-shifted lattice transformation.
+        """
+        if phase is None:
+            if image is None:
+                raise ValueError("No `image` or `phase` given")
+            # From isolated atoms
+            if (
+                method == "isolated_atoms"
+                and self.isolated_locator is not None
+            ):
+                label_centers = self.isolated_locator.get_label_centers(image)
+                if len(label_centers) > 0:
+                    phase, _ = get_trafo_phase_from_points(
+                        *np.moveaxis(label_centers, -1, 0),
+                        self.trafo_site_to_image
+                    )
+                else:
+                    phase = np.zeros(2)
+                    self.LOGGER.error(
+                        f"get_phase_shifted_trafo: "
+                        f"Could not locate isolated atoms. "
+                        f"Using default phase: {str(phase)}"
+                    )
+            # From emission variance maximization
+            else:
+                if method != "projection_optimization":
+                    self.LOGGER.warning(
+                        f"get_phase_shifted_trafo: "
+                        f"Method `{str(method)}` unavailable, "
+                        f"using `projection_optimization`"
+                    )
+                phase = get_trafo_phase_from_projections(
+                    image, self.projector_generator,
+                    phase_ref_image=self.phase_ref_image
+                )
+        # Construct phase-shifted trafo
+        new_trafo = trafo_gen.get_trafo_site_to_image(
+            trafo_site_to_image=self.trafo_site_to_image, phase=phase,
+            phase_ref_site=self.phase_ref_site,
+            phase_ref_image=self.phase_ref_image
+        )
+        return new_trafo
+
     def reconstruct(self, image, new_trafo=None):
         """
         Reconstructs the state of each lattice site from an image.
@@ -665,25 +770,11 @@ class StateEstimator:
             Reconstruction result.
         """
         # Find trafo phase
-        label_centers = np.array([])
         if new_trafo is None:
-            label_centers = self.isolated_locator.get_label_centers(image)
-            if len(label_centers) > 0:
-                phase, _ = get_trafo_phase_from_points(
-                    *np.moveaxis(label_centers, -1, 0),
-                    self.trafo_site_to_image
-                )
-            else:
-                phase = np.zeros(2)
-                self.LOGGER.error(
-                    f"Could not locate isolated atoms. "
-                    f"Using default phase: {str(phase)}"
-                )
-            new_trafo = trafo_gen.get_trafo_site_to_image(
-                trafo_site_to_image=self.trafo_site_to_image, phase=phase,
-                phase_ref_site=self.phase_ref_site,
-                phase_ref_image=self.phase_ref_image
-            )
+            new_trafo = self.get_phase_shifted_trafo(image=image)
+        trafo_phase, _ = trafo_gen.get_phase_from_trafo_site_to_image(
+            new_trafo, phase_ref_image=self.phase_ref_image
+        )
         # Construct local images
         emissions = ArrayData(np.zeros(self.sites_shape, dtype=float))
         emissions_coord = emissions.get_var_meshgrid()
@@ -723,13 +814,14 @@ class StateEstimator:
         # Package result
         res = dict(
             trafo=new_trafo,
+            trafo_phase=trafo_phase,
             emissions=emissions,
-            label_center=label_centers,
             histogram=histogram,
             success=state_estimation_success
         )
         if state_estimation_success:
             res.update(dict(
+                hist_strat=histogram_data["strat"],
                 hist_center=histogram_data["center"],
                 hist_threshold=histogram_data["threshold"],
                 hist_error_prob=histogram_data["error_prob"],

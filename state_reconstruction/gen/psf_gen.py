@@ -270,6 +270,18 @@ class IntegratedPsfGenerator(AttrHashBase):
         self.psf_supersample = psf_supersample
         self.psf_integrated_cache_built = False
 
+    def get_attr_str(self):
+        keys = ["psf_supersample", "psf_shape"]
+        s = [f" → {k}: {str(getattr(self, k))}" for k in keys]
+        return "\n".join(s)
+
+    def __str__(self):
+        return f"{self.__class__.__name__}:\n{self.get_attr_str()}"
+
+    def __repr__(self):
+        s = f"<'{self.__class__.__name__}' at {hex(id(self))}>"
+        return f"{s}\n{self.get_attr_str()}"
+
     @property
     def psf(self):
         return self._psf
