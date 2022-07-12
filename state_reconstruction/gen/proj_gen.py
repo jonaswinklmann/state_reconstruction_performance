@@ -445,7 +445,8 @@ class ProjectorGenerator(AttrHashBase):
         for dx, dy in _iter:
             _proj = get_projector(
                 self.trafo_site_to_image, self.integrated_psf_generator,
-                dx=dx, dy=dy, rel_embedding_size=self.rel_embedding_size
+                dx=dx, dy=dy, rel_embedding_size=self.rel_embedding_size,
+                normalize=False
             )
             self._proj_full_cache[dx, dy] = _proj
         # Save to file
@@ -559,6 +560,6 @@ class ProjectorGenerator(AttrHashBase):
             proj_full = get_projector(
                 self.trafo_site_to_image, self.integrated_psf_generator,
                 dx=dx, dy=dy, rel_embedding_size=self.rel_embedding_size,
-                proj_shape=self.proj_shape
+                proj_shape=self.proj_shape, normalize=False
             )
             return crop_projector(proj_full, proj_shape=self.proj_shape)

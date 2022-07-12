@@ -18,7 +18,7 @@ from libics.tools.math.signal import (
     find_histogram, find_peaks_1d_prominence, analyze_single_peak, PeakInfo
 )
 
-from state_reconstruction.gen import trafo_gen
+from state_reconstruction.gen import trafo_gen, image_gen
 from .proj_est import get_local_images, apply_projectors
 from .trafo_est import (
     get_trafo_phase_from_points, get_trafo_phase_from_projections
@@ -176,9 +176,9 @@ def analyze_emission_histogram(
                 strat_peaks["position"][0], 0
             ) <= 2
         ):
-            strat = "sfit"
-        else:
             strat = "bgth"
+        else:
+            strat = "sfit"
     LOGGER.debug(f"`analyze_emission_histogram`: using strategy {strat}")
 
     # +++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -832,3 +832,97 @@ class StateEstimator:
             ))
         res = ReconstructionResult(**res)
         return res
+
+    def get_reconstructed_image(self, res, image_shape=(512, 512)):
+        """
+        Gets a reconstructed fluorescence image.
+
+        Parameters
+        ----------
+        res : `ReconstructionResult`
+            Successful reconstruction result object.
+        image_shape : `(int, int)`
+            Shape of image.
+
+        Returns
+        -------
+        image_clean : `ArrayData[2, float]`
+            Reconstructed fluorescence image.
+        """
+        # Parse parameters
+        if res.success is not True:
+            raise ValueError("ReconstructionResult invalid")
+        if np.isscalar(image_shape):
+            image_shape = (image_shape, image_shape)
+        # Get site positions inside image
+        _half_proj_shape = np.array(self.proj_shape) // 2
+        site_coords = res.emissions.get_var_meshgrid()
+        image_coords = res.trafo.coord_to_target(site_coords.T).T
+        mask = np.logical_and.reduce([
+            (image_coords[i] > _half_proj_shape[i])
+            & (image_coords[i] < image_shape[i] - _half_proj_shape[i])
+            for i in range(2)
+        ])
+        image_coords = np.array([_c[mask] for _c in image_coords])
+        emissions_masked = np.array(res.emissions)[mask]
+        # Generate image
+        ipsfgen = self.projector_generator.integrated_psf_generator
+        local_psfs = image_gen.get_local_psfs(
+            *image_coords, integrated_psf_generator=ipsfgen
+        )
+        image_clean = image_gen.get_image_clean(
+            local_psfs=local_psfs, brightness=emissions_masked,
+            size=image_shape
+        )
+        return ArrayData(image_clean)
+
+    def get_reconstructed_emissions(self, res, image_shape=(512, 512)):
+        """
+        Gets the reconstructed image coordinates and emissions.
+
+        Parameters
+        ----------
+        res : `ReconstructionResult`
+            Successful reconstruction result object.
+        image_shape : `(int, int)`
+            Shape of image.
+
+        Returns
+        -------
+        _d : `dict(str->Any)`
+            Result dictionary containing the following items:
+        image_coords_occupied, image_coords_empty : `np.ndarray(2, float)`
+            Image coordinates of occupied/empty sites.
+        emissions_occupied, emissions_empty : `np.ndarray(1, float)`
+            Corresponding emissions.
+        """
+        # Parse parameters
+        if res.success is not True:
+            raise ValueError("ReconstructionResult invalid")
+        if np.isscalar(image_shape):
+            image_shape = (image_shape, image_shape)
+        # Get all coordinates inside image
+        site_coords = res.emissions.get_var_meshgrid()
+        image_coords = res.trafo.coord_to_target(np.transpose(site_coords)).T
+        mask = np.logical_and.reduce([
+            (image_coords[i] > 0) & (image_coords[i] < image_shape[i])
+            for i in range(2)
+        ])
+        image_coords = np.array([_c[mask] for _c in image_coords])
+        emissions_masked = np.array(res.emissions)[mask]
+        # Separate empty and occupied sites
+        mask_occupied = emissions_masked > res.hist_threshold[0]
+        image_coords_occupied = np.array([
+            _c[mask_occupied] for _c in image_coords
+        ])
+        image_coords_empty = np.array([
+            _c[~mask_occupied] for _c in image_coords
+        ])
+        emissions_occupied = emissions_masked[mask_occupied]
+        emissions_empty = emissions_masked[~mask_occupied]
+        return {
+            "image_coords_occupied": image_coords_occupied,
+            "emissions_occupied": emissions_occupied,
+            "image_coords_empty": image_coords_empty,
+            "emissions_empty": emissions_empty,
+        }
