@@ -327,7 +327,7 @@ def analyze_emission_histogram(
             _pmf = np.array(_hist, dtype=float)
             _pmf /= np.sum(_pmf)
             _mean = np.sum(_pmf * _hist.get_points(0))
-            _std = np.sqrt(np.sum(_pmf * _hist.get_points(0)**2) - _mean**2)
+            _std = np.sqrt(np.sum(_pmf * (_hist.get_points(0) - _mean)**2))
             if np.isclose(_std, 0):
                 _std = _hist.get_step(0)
             _amp = np.sum(_hist)
