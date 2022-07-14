@@ -10,6 +10,7 @@ import matplotlib as mpl
 import numpy as np
 import scipy.optimize
 import scipy.ndimage
+from uuid import uuid4 as uuid
 
 from libics.env.logging import get_logger
 from libics.core.data.arrays import ArrayData
@@ -408,7 +409,7 @@ class EmissionHistogramAnalysis:
     def __init__(
         self, bin_range=None, strat_size=20, strat_prominence=0.08,
         sfit_idx_center_ratio=0.1, sfit_filter=1., n12_err_num=None,
-        bgth_signal_err_num=0.1
+        bgth_signal_err_num=0.01
     ):
         # Histogram parameters
         self.bin_range = bin_range
@@ -451,6 +452,9 @@ class ReconstructionResult(io.FileBase):
 
     Attributes
     ----------
+    state_estimator_id : `str`
+        Identifier of :py:class:`StateEstimator` object that
+        generated this reconstruction result.
     trafo : `AffineTrafo2d`
         Affine transformation between sites and image coordinates.
     emissions : `ArrayData(2, float)`
@@ -487,7 +491,7 @@ class ReconstructionResult(io.FileBase):
     """
 
     _attributes = {
-        "trafo", "trafo_phase", "emissions", "state",
+        "state_estimator_id", "trafo", "trafo_phase", "emissions", "state",
         "histogram", "hist_strat", "hist_center", "hist_threshold",
         "hist_error_prob", "hist_error_num", "hist_emission_num",
         "hist_peak_info", "success"
@@ -589,6 +593,8 @@ class StateEstimator:
 
     Parameters
     ----------
+    id : `str`
+        Object identifier.
     projector_generator : `ProjectorGenerator`
         Projector generator object.
     isolated_locator : `IsolatedLocator`
@@ -631,14 +637,24 @@ class StateEstimator:
     LOGGER = get_logger("srec.StateEstimator")
 
     def __init__(
-        self,
+        self, id=None,
         projector_generator=None,
         isolated_locator=None,
         trafo_site_to_image=None,
-        phase_ref_site=(0, 0), phase_ref_image=(169, 84),
+        phase_ref_image=None, phase_ref_site=None,
         sites_shape=(170, 170),
         emission_histogram_analysis=None
     ):
+        # Parse parameters
+        if id is None:
+            id = str(uuid()).split("-")[-1]
+        _phase_ref = trafo_gen.get_phase_ref()
+        if phase_ref_image is None:
+            phase_ref_image = _phase_ref["phase_ref_image"]
+        if phase_ref_site is None:
+            phase_ref_site = _phase_ref["phase_ref_site"]
+        # Assign attributes
+        self.id = id
         self.projector_generator = projector_generator
         self.isolated_locator = isolated_locator
         self.phase_ref_site = phase_ref_site
@@ -734,6 +750,9 @@ class StateEstimator:
         if phase is None:
             if image is None:
                 raise ValueError("No `image` or `phase` given")
+            image = np.array(image)
+            if np.isfortran(image):
+                image = np.ascontiguousarray(image)
             # From isolated atoms
             if (
                 method == "isolated_atoms"
@@ -790,6 +809,9 @@ class StateEstimator:
         res : `ReconstructionResult`
             Reconstruction result.
         """
+        image = np.array(image)
+        if np.isfortran(image):
+            image = np.ascontiguousarray(image)
         # Find trafo phase
         if new_trafo is None:
             new_trafo = self.get_phase_shifted_trafo(image=image)
@@ -834,6 +856,7 @@ class StateEstimator:
             state_estimation_success = False
         # Package result
         res = dict(
+            state_estimator_id=self.id,
             trafo=new_trafo,
             trafo_phase=trafo_phase,
             emissions=emissions,
@@ -916,8 +939,6 @@ class StateEstimator:
             Image coordinates of occupied/empty sites.
         emissions_occupied, emissions_empty : `np.ndarray(1, float)`
             Corresponding emissions.
-        background : `ArrayData(2, np.nan)`
-            Dummy background.
         """
         # Parse parameters
         if res.success is not True:
@@ -943,17 +964,11 @@ class StateEstimator:
         ])
         emissions_occupied = emissions_masked[mask_occupied]
         emissions_empty = emissions_masked[~mask_occupied]
-        # Set up dummy background
-        bg = ArrayData(np.full((2, 2), np.nan))
-        bg.set_data_quantity(name="projected emission")
-        for i, size in enumerate(image_shape):
-            bg.set_dim(i, points=[0, size])
         return {
             "image_coords_occupied": image_coords_occupied,
             "emissions_occupied": emissions_occupied,
             "image_coords_empty": image_coords_empty,
-            "emissions_empty": emissions_empty,
-            "background": bg
+            "emissions_empty": emissions_empty
         }
 
 
@@ -964,10 +979,38 @@ class StateEstimator:
 
 def plot_reconstructed_emissions(
     res=None, image_coords_occupied=None, emissions_occupied=None,
-    image_coords_empty=None, background=None,
+    image_coords_empty=None, plot_range=True, colorbar=True, clabel=None,
     ax=None, cmap="plasma", size_occupied=12, color_empty="grey", size_empty=1,
-    **kwargs
+    **_
 ):
+    """
+    Plots reconstructed emissions as circles in their image coordinates.
+
+    Parameters
+    ----------
+    res : `ReconstructionResult`
+        Reconstruction result for determining the color map range.
+    image_coords_occupied, image_coords_empty : `Array[2, float]`
+        Image coordinates of occupied and empty sites with dimensions:
+        `[ndim, nsites]`.
+    emissions_occupied : `Array[1, float]`
+        Projected emissions in the order corresponding to
+        `image_coords_occupied`.
+    plot_range : `bool``
+        Whether `xlim, ylim` of the `ax` are automatically set.
+    colorbar : `bool`
+        Whether a color bar is shown.
+    clabel : `str`
+        Color bar label.
+    ax : `mpl.axes.Axes` or `None`
+        Matplotlib axes to plot into.
+    cmap : `str`
+        Color map for projected emissions.
+    size_occupied, size_empty : `float`
+        Marker size for occupied and empty sites.
+    color_empty : `str`
+        Color of empty sites.
+    """
     # Parse parameters
     if emissions_occupied is None:
         raise ValueError("No `emissions_occupied` available")
@@ -984,11 +1027,29 @@ def plot_reconstructed_emissions(
         vdif = 1
     if isinstance(cmap, str):
         cmap = mpl.cm.get_cmap(name=cmap)
-    # Plot background (for colorbar)
-    if background is not None:
+    # Set plot range
+    plot_rect = []
+    for dim in range(2):
+        _coords = np.concatenate([
+            np.ravel(_x) for _x in [
+                image_coords_empty[dim], image_coords_occupied[dim]
+            ]
+        ])
+        plot_rect.append([
+            np.floor(np.min(_coords)), np.ceil(np.max(_coords)) + 1
+        ])
+    plot_rect = np.array(plot_rect, dtype=int)
+    if plot_range is True:
+        ((xmin, xmax), (ymin, ymax)) = plot_rect
+        plot.style_axes(ax=ax, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
+    # Generate colorbar
+    if colorbar is True:
+        background = ArrayData(np.full((2, 2), np.nan))
+        for dim in range(2):
+            background.set_dim(dim, center=np.mean(plot_rect[dim]), step=1)
         plot.pcolorim(
             background, ax=ax, cmap=cmap,
-            vmin=vmin, vmax=vmin+2*vdif, colorbar=True
+            vmin=vmin, vmax=vmin+2*vdif, colorbar=True, clabel=clabel
         )
     # Plot empty sites
     if image_coords_empty is not None:
