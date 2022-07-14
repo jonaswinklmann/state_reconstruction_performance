@@ -351,7 +351,11 @@ def analyze_emission_histogram(
         n12_err = n12_err_num / n1_pi.distribution_amplitude
     else:
         n12_err = n1_err
-    n12_thr = n1_pi.distribution.isf(n12_err)
+    # Cutoff due to machine precision
+    if n12_err < 1e-50:
+        n12_thr = 2 * n1_center - n01_thr
+    else:
+        n12_thr = n1_pi.distribution.isf(n12_err)
 
     # Package results
     n0_num = np.sum(hist.data[hist.get_points(0) < n01_thr])
