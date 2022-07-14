@@ -464,8 +464,8 @@ class ReconstructionResult(io.FileBase):
     state_estimator_id : `str`
         Identifier of :py:class:`StateEstimator` object that
         generated this reconstruction result.
-    outlier_ratio : `float`
-        Image preprocessing outlier ratio (see `:py:class:ImagePreprocessor`).
+    outlier_ratios : `float`
+        Image preprocessing outlier ratios (see `:py:class:ImagePreprocessor`).
     trafo : `AffineTrafo2d`
         Affine transformation between sites and image coordinates.
     emissions : `ArrayData(2, float)`
@@ -502,7 +502,7 @@ class ReconstructionResult(io.FileBase):
     """
 
     _attributes = {
-        "state_estimator_id", "outlier_ratio", "trafo", "trafo_phase",
+        "state_estimator_id", "outlier_ratios", "trafo", "trafo_phase",
         "emissions", "state",
         "histogram", "hist_strat", "hist_center", "hist_threshold",
         "hist_error_prob", "hist_error_num", "hist_emission_num",
@@ -535,12 +535,12 @@ class ReconstructionResult(io.FileBase):
         attrs = self.attributes().copy()
         if self.success:
             keys = [
-                "outlier_ratio", "trafo_phase",
+                "outlier_ratios", "trafo_phase",
                 "hist_strat", "hist_center", "hist_threshold",
                 "hist_error_prob", "hist_error_num", "hist_emission_num"
             ]
         else:
-            keys = ["outlier_ratio", "trafo_phase", "success"]
+            keys = ["outlier_ratios", "trafo_phase", "success"]
         s = [f" → {k}: {str(attrs[k])}" for k in keys]
         return "\n".join(s)
 
@@ -901,9 +901,11 @@ class StateEstimator:
         image = np.array(image)
         if np.isfortran(image):
             image = np.ascontiguousarray(image)
-        outlier_ratio = None
+        outlier_ratios = None
         if self.image_preprocessor:
-            image, outlier_ratio = self.image_preprocessor.process_image(image)
+            image, outlier_ratios = (
+                self.image_preprocessor.process_image(image)
+            )
         # Find trafo phase
         if new_trafo is None:
             new_trafo = self.get_phase_shifted_trafo(
@@ -951,7 +953,7 @@ class StateEstimator:
         # Package result
         res = dict(
             state_estimator_id=self.id,
-            outlier_ratio=outlier_ratio,
+            outlier_ratios=outlier_ratios,
             trafo=new_trafo,
             trafo_phase=trafo_phase,
             emissions=emissions,
@@ -1288,10 +1290,13 @@ def plot_reconstruction_results(
     # Images
     rec_image = state_estimator.get_reconstructed_image(rec_res)
     title_appendix = "" if image_id is None else f" ({str(image_id)})"
-    if rec_res.outlier_ratio is None:
+    if rec_res.outlier_ratios is None:
         raw_appendix = ""
     else:
-        raw_appendix = f", Outlier: {rec_res.outlier_ratio:.1f}"
+        raw_appendix = (
+            f", Outlier: "
+            f"{misc.cv_iter_to_str(rec_res.outlier_ratios, fmt='{:.1f}'):s}"
+        )
     plt_param = dict(
         cmap="hot", vmin=0, vmax=np.max(rec_image)*1.25,
         colorbar=True, clabel="Camera counts"
@@ -1329,5 +1334,5 @@ def plot_reconstruction_results(
     else:
         plot.style_axes(ax=ax, title="Reconstruction result invalid")
     # Return figure
-    plot.style_figure(tight_layout=True)
+    plot.style_figure(fig=fig, tight_layout=True)
     return fig

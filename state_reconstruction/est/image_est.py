@@ -42,9 +42,9 @@ def prescale_image(im, scale):
 ###############################################################################
 
 
-def analyze_image_outlier(im, outlier_size=(5, 5)):
+def analyze_image_outlier(im, outlier_size=(5, 5), min_ref_val=5):
     """
-    Analyzes an image for outliers.
+    Analyzes an image for negative and positive outliers.
 
     Parameters
     ----------
@@ -52,26 +52,37 @@ def analyze_image_outlier(im, outlier_size=(5, 5)):
         Raw image.
     outlier_size : `(int, int)`
         Expected size of potential outliers.
+    min_ref_val : `float`
+        Minimum reference value to be considered valid outlier.
 
     Returns
     -------
-    outlier_ratio : `float`
-        Ratio between (background-subtracted) image maximum and reference.
-        The reference is the `product(outlier_size)`-th largest image value.
+    outlier_ratios : `np.ndarray([float, float])`
+        Ratio between (background-subtracted) image minimum/maximum
+        and reference, which is the `product(outlier_size)`-th
+        smallest/largest image value.
         The background is the image median.
-    outlier_idx : `(int, int)`
-        Image coordinates of maximum pixel.
+    outlier_idxs : `[(int, int), (int, int)]`
+        Image coordinates of minimum/maximum pixel:
+        `[(xmin, ymin), (xmax, ymax)]`.
     ar_bg : `float`
         Background (i.e. median) of image.
     """
     im = np.array(im)
     ar = np.ravel(im)
-    order = np.flip(np.argsort(ar))
-    ar_max, ar_ref = ar[order[0]], ar[order[np.prod(outlier_size)]]
+    order = np.argsort(ar)
+    ar_min, ar_ref_min = ar[order[0]], ar[order[np.prod(outlier_size)]]
+    ar_max, ar_ref_max = ar[order[-1]], ar[order[-1 - np.prod(outlier_size)]]
     ar_bg = ar[order[ar.size // 2]]
-    outlier_ratio = (ar_max - ar_bg) / (ar_ref - ar_bg)
-    outlier_idx = np.unravel_index(order[0], im.shape)
-    return outlier_ratio, outlier_idx, ar_bg
+    outlier_ratios = np.array([
+        (ar_bg - ar_min) / max(min_ref_val, ar_bg - ar_ref_min),
+        (ar_max - ar_bg) / max(min_ref_val, ar_ref_max - ar_bg)
+    ])
+    outlier_idxs = [
+        np.unravel_index(order[0], im.shape),
+        np.unravel_index(order[-1], im.shape)
+    ]
+    return outlier_ratios, outlier_idxs, ar_bg
 
 
 def remove_image_outlier(im, outlier_idx, outlier_size=(3, 3), val=None):
@@ -101,6 +112,74 @@ def remove_image_outlier(im, outlier_idx, outlier_size=(3, 3), val=None):
     return im
 
 
+def process_image_outliers_recursive(
+    im, max_outlier_ratio=None, min_ref_val=5, outlier_size=(5, 5), max_its=2,
+    _it=0
+):
+    """
+    Recursively checks for outliers and enlarges the outlier size if necessary.
+
+    Parameters
+    ----------
+    im : `Array[2, float]`
+        Raw image.
+    max_outlier_ratio : `float` or `None`
+        Maximum allowed outlier ratio.
+        If `None`, does not apply removal.
+    min_ref_val : `float`
+        Minimum reference value to be considered valid outlier.
+    outlier_size : `(int, int)`
+        Removal area around outlier.
+    max_its : `int`
+        Maximum number of iterations.
+    _it : `int`
+        Current iteration.
+
+    Returns
+    -------
+    res : `dict(str->Any)`
+        Analysis results containing the items:
+    image : `Array[2, float]`
+        Image with outliers removed.
+    iterations : `int`
+        Number of iterations applied.
+        (`iterations == 1` means no recursive call.)
+    outlier_ratios : `np.ndarray([float, float])`
+        Minimum/maximum outlier ratios for last iteration.
+    outlier_size : `(int, int)`
+        Removal area for last iteration.
+    """
+    # Analyze outlier
+    outlier_ratios, outlier_idxs, bg = analyze_image_outlier(
+        im, outlier_size=outlier_size,
+        min_ref_val=min_ref_val
+    )
+    if (
+        max_outlier_ratio is None or
+        np.all(outlier_ratios <= max_outlier_ratio) or _it >= max_its
+    ):
+        return dict(
+            image=im, iterations=_it,
+            outlier_ratios=outlier_ratios,
+            outlier_size=np.array(outlier_size)
+        )
+    else:
+        # Remove outliers
+        for i, outlier_ratio in enumerate(outlier_ratios):
+            if outlier_ratio > max_outlier_ratio:
+                im = remove_image_outlier(
+                    im, outlier_idxs[i],
+                    outlier_size=np.array(outlier_size),
+                    val=bg
+                )
+        # Call function to get analysis
+        return process_image_outliers_recursive(
+            im, max_outlier_ratio, min_ref_val=min_ref_val,
+            outlier_size=outlier_size, max_its=max_its,
+            _it=_it+1
+        )
+
+
 ###############################################################################
 # Image preprocessing
 ###############################################################################
@@ -124,22 +203,30 @@ class ImagePreprocessor(AttrHashBase):
         Area around outlier over which the outlier is analyzed and removed.
     max_outlier_ratio : `float`
         Maximum accepted ratio between outlier and non-outlier maximum.
+    outlier_min_ref_val : `float`
+        Minimum reference value to be considered valid outlier.
+    outlier_iterations : `int`
+        Maximum number of outlier removal iterations.
     """
 
     LOGGER = get_logger("srec.ImagePreprocessor")
     HASH_KEYS = AttrHashBase.HASH_KEYS | {
-        "scale", "outlier_size", "max_outlier_ratio"
+        "scale", "outlier_size", "max_outlier_ratio",
+        "outlier_min_ref_val", "outlier_iterations"
     }
 
     def __init__(
         self, scale=None,
-        outlier_size=(5, 5), max_outlier_ratio=5
+        outlier_size=(5, 5), max_outlier_ratio=5, outlier_min_ref_val=5,
+        outlier_iterations=2
     ):
         if isinstance(scale, str):
             scale = io.load(scale)
         self.scale = scale
         self.outlier_size = outlier_size
         self.max_outlier_ratio = max_outlier_ratio
+        self.outlier_min_ref_val = outlier_min_ref_val
+        self.outlier_iterations = outlier_iterations
 
     def get_attr_str(self):
         s = []
@@ -148,7 +235,7 @@ class ImagePreprocessor(AttrHashBase):
             _scale_shape = ("scalar" if np.isscalar(self.scale)
                             else str(self.scale.shape))
             s.append(f" → scale: mean: {_scale_mean}, shape: {_scale_shape}")
-        for k in ["outlier_size", "max_outlier_ratio"]:
+        for k in ["outlier_size", "max_outlier_ratio", "outlier_iterations"]:
             s.append(f" → {k}: {str(getattr(self, k))}")
         return "\n".join(s)
 
@@ -177,26 +264,31 @@ class ImagePreprocessor(AttrHashBase):
         outlier_ratio : `bool`
             Outlier ratio.
         """
+        # Prescale image
         if self.scale is not None:
             im = prescale_image(im, self.scale)
-        outlier_ratio, outlier_idx, bg = analyze_image_outlier(
-            im, outlier_size=self.outlier_size
+        # Process outliers
+        outliers = process_image_outliers_recursive(
+            im, self.max_outlier_ratio, min_ref_val=self.outlier_min_ref_val,
+            outlier_size=self.outlier_size, max_its=self.outlier_iterations
         )
-        if self.max_outlier_ratio is not None:
-            if outlier_ratio > self.max_outlier_ratio:
-                self.LOGGER.info(f"process_image: Outlier detected with "
-                                 f"ratio {outlier_ratio:.1f}")
-                im = remove_image_outlier(
-                    im, outlier_idx, outlier_size=self.outlier_size, val=bg
+        im = outliers["image"]
+        outlier_ratios = outliers["outlier_ratios"]
+        outlier_size = outliers["outlier_size"]
+        outlier_iterations = outliers["iterations"]
+        s_outl_ratios = misc.cv_iter_to_str(outlier_ratios, fmt="{:.1f}")
+        s_outl_size = misc.cv_iter_to_str(outlier_size, fmt="{:.0f}")
+        _msg = (
+            f"(ratios: {s_outl_ratios:s}, size: {s_outl_size}, "
+            f"iterations: {outlier_iterations:d})"
+        )
+        if outlier_iterations == 1:
+            self.LOGGER.debug(f"process_image: No outlier detected {_msg}")
+        else:
+            if np.any(outlier_ratios > self.max_outlier_ratio):
+                self.LOGGER.warning(
+                    f"process_image: Outlier removal failed {_msg}"
                 )
-                outlier_ratio, _, _ = analyze_image_outlier(
-                    im, outlier_size=self.outlier_size
-                )
-                if outlier_ratio > self.max_outlier_ratio:
-                    self.LOGGER.warning(
-                        "process_image: Outlier removal failed"
-                    )
             else:
-                self.LOGGER.debug(f"process_image: No outlier detected "
-                                  f"(ratio: {outlier_ratio:.1f})")
-        return im, outlier_ratio
+                self.LOGGER.info(f"process_image: Outlier detected {_msg}")
+        return im, outlier_ratios
