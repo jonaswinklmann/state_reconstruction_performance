@@ -484,7 +484,7 @@ class ProjectorGenerator(AttrHashBase):
             )
         if proj_shape is not False:
             self._proj_shape = proj_shape
-        proj_shape = self.proj_shape
+        proj_shape = tuple(self.proj_shape)
         cache_shape = self._proj_full_cache.shape[:2]
         # Crop projectors
         self.proj_cache = np.zeros(cache_shape + proj_shape, dtype=float)

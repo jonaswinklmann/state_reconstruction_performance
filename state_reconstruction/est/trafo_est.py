@@ -458,7 +458,11 @@ class TrafoEstimator:
         # Optimize trafo
         trafo_params = get_trafo_from_sites_direct(
             *np.transpose(label_centers), self.guess_trafo,
-            print_progress=print_progress
+            angle_range=self.angle_range, angle_num=self.angle_num,
+            bins_per_site=self.bins_per_site,
+            peak_rel_prominence=self.peak_rel_prominence,
+            peak_base_prominence_ratio=self.peak_base_prominence_ratio,
+            min_fidelity=self.min_fidelity, print_progress=print_progress
         )
         opt_trafo = trafo_params["trafo"]
         return opt_trafo
@@ -659,29 +663,37 @@ def get_trafo_phase_from_projections(
     phase : `np.ndarray(1, float)`
         Phase (residual) of lattice w.r.t. to image coordinates (0, 0).
     """
+    # Parse parameters
     if subimage_shape is None:
         subimage_shape = np.copy(prjgen.psf_shape)
-    crop_shape = (np.array(im.shape) // subimage_shape) * subimage_shape
-    crop_im = im[tuple(slice(None, _s) for _s in crop_shape)]
+    # Cropped image to avoid checking image borders
+    proj_shape = np.array(prjgen.proj_shape)
+    im_roi = im[proj_shape[0]:-proj_shape[0], proj_shape[1]:-proj_shape[1]]
+    crop_shape = (np.array(im_roi.shape) // subimage_shape) * subimage_shape
+    im_crop = im_roi[tuple(slice(None, _s) for _s in crop_shape)]
     grid_shape = crop_shape // subimage_shape
-
+    # Get subimage with maximum signal variance as proxy for mixed filling
     subimages = np.reshape(
-        crop_im,
+        im_crop,
         (grid_shape[0], subimage_shape[0], grid_shape[1], subimage_shape[1])
     )
     subimages_std = np.std(subimages, axis=(1, 3))
     idx = np.unravel_index(np.argmax(subimages_std), subimages_std.shape)
     subimage_center = ((np.array(idx) + 0.5) * subimage_shape).astype(int)
+    subimage_center += proj_shape
 
+    # Get phase by maximizing projected emissions variance
     if subsite_shape is None:
         subsite_shape = get_subsite_shape(prjgen, subimage_shape)
     init_shift = [0, 0]
+    # Maximize on integer pixels
     opt_shift_int, results_cache = maximize_discrete_stepwise(
         get_subimage_emission_std, init_shift,
         args=(subimage_center, im, prjgen),
         kwargs=dict(subsite_shape=subsite_shape),
         dx=1, search_range=search_range, ret_cache=True
     )
+    # Maximize on subpixels
     opt_shift_float = maximize_discrete_stepwise(
         get_subimage_emission_std, opt_shift_int,
         args=(subimage_center, im, prjgen),
@@ -689,6 +701,7 @@ def get_trafo_phase_from_projections(
         dx=1/prjgen.psf_supersample/2, search_range=search_range,
         results_cache=results_cache
     )
+    # Calculate phase
     opt_trafo = get_shifted_subimage_trafo(
         prjgen.trafo_site_to_image, opt_shift_float, subimage_center
     )
@@ -730,7 +743,7 @@ class FitPeriodicGaussian1d(ModelBase):
         _centers = np.sort(peaks["center"])
         x0 = _centers[0]
         dx = np.mean(_centers[1:] - _centers[:-1])
-        wx = np.mean(peaks["width"])
+        wx = np.nanmean(peaks["width"])
         c = np.min(func_data)
         a = (np.max(func_data) - c) / 2
         self.p0 = [a, x0, wx, dx, c]
