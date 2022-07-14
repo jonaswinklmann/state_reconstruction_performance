@@ -10,6 +10,7 @@ import numpy as np
 from libics.env.logging import get_logger
 from libics.core.util import misc
 from libics.core.data.types import AttrHashBase
+from libics.core import io
 
 
 ###############################################################################
@@ -114,9 +115,11 @@ class ImagePreprocessor(AttrHashBase):
 
     Parameters
     ----------
-    scale : `Array[2, float]`
+    scale : `Array[2, float]` or `str`
         Image amplitude prescaling.
         Must have same shape as images to be processed.
+        If `str`, `scale` is interpreted as file path from which the image
+        is loaded.
     outlier_size : `(int, int)`
         Area around outlier over which the outlier is analyzed and removed.
     max_outlier_ratio : `float`
@@ -132,6 +135,8 @@ class ImagePreprocessor(AttrHashBase):
         self, scale=None,
         outlier_size=(5, 5), max_outlier_ratio=5
     ):
+        if isinstance(scale, str):
+            scale = io.load(scale)
         self.scale = scale
         self.outlier_size = outlier_size
         self.max_outlier_ratio = max_outlier_ratio

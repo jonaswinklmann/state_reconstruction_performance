@@ -4,7 +4,6 @@ Projector generator.
 Calculates the projectors to map images to lattice sites.
 """
 
-import copy
 import numpy as np
 import os
 
@@ -17,6 +16,7 @@ from libics.core import io
 from state_reconstruction import __version__
 from state_reconstruction import config
 from state_reconstruction.gen.image_gen import get_local_psfs
+from state_reconstruction.gen.psf_gen import IntegratedPsfGenerator
 
 
 ###############################################################################
@@ -204,7 +204,7 @@ def get_projector(
         np.array([dx, dy]) / integrated_psf_generator.psf_supersample
     )
     # Center trafo
-    centered_trafo = copy.deepcopy(trafo_site_to_image)
+    centered_trafo = trafo_site_to_image.copy()
     centered_trafo.offset = np.zeros(2)
     # Build embedding area
     embedding_size = rel_embedding_size * integrated_psf_generator.psf_shape
@@ -360,6 +360,13 @@ class ProjectorGenerator(AttrHashBase):
         # Protected variables
         self._proj_full_cache = None
         self._proj_shape = proj_shape
+        # Parse parameters
+        if isinstance(trafo_site_to_image, str):
+            trafo_site_to_image = io.load(trafo_site_to_image)
+        if isinstance(integrated_psf_generator, str):
+            integrated_psf_generator = IntegratedPsfGenerator.load(
+                integrated_psf_generator
+            )
         # Public input variables
         self.trafo_site_to_image = trafo_site_to_image
         self.integrated_psf_generator = integrated_psf_generator

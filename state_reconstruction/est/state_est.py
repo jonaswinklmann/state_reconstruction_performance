@@ -21,9 +21,12 @@ from libics.tools.math.peaked import FitGaussian1d
 from libics.tools.math.signal import (
     find_histogram, find_peaks_1d_prominence, analyze_single_peak, PeakInfo
 )
+from libics.tools.trafo.linear import AffineTrafo2d
 from libics.tools import plot
 
-from state_reconstruction.gen import trafo_gen, image_gen
+from state_reconstruction.gen import trafo_gen, image_gen, proj_gen
+from .image_est import ImagePreprocessor
+from .iso_est import IsolatedLocator
 from .proj_est import get_local_images, apply_projectors
 from .trafo_est import (
     get_trafo_phase_from_points, get_trafo_phase_from_projections
@@ -610,16 +613,18 @@ class StateEstimator:
     ----------
     id : `str`
         Object identifier.
+    image_preprocessor : `ImagePreprocessor`
+        Image preprocessor object.
+    phase_ref_site, phase_ref_image : `(float, float)`
+        Transformation phase reference points in sites and image space.
+    trafo_site_to_image : `AffineTrafo2d`
+        Transformation between sites and image coordinates.
+        Its phase is optimized for each image individually.
     projector_generator : `ProjectorGenerator`
         Projector generator object.
     isolated_locator : `IsolatedLocator`
         Isolated atoms locator object,
         used to obtain the transformation phase.
-    trafo_site_to_image : `AffineTrafo2d`
-        Transformation between sites and image coordinates.
-        Its phase is optimized for each image individually.
-    phase_ref_site, phase_ref_image : `(float, float)`
-        Transformation phase reference points in sites and image space.
     sites_shape : `(int, int)`
         Shape of 2D array representing lattice sites.
     emission_histogram_analysis : `EmissionHistogramAnalysis`
@@ -654,10 +659,10 @@ class StateEstimator:
     def __init__(
         self, id=None,
         image_preprocessor=None,
+        phase_ref_image=None, phase_ref_site=None,
+        trafo_site_to_image=None,
         projector_generator=None,
         isolated_locator=None,
-        trafo_site_to_image=None,
-        phase_ref_image=None, phase_ref_site=None,
         sites_shape=(170, 170),
         emission_histogram_analysis=None
     ):
@@ -672,13 +677,67 @@ class StateEstimator:
         # Assign attributes
         self.id = id
         self.image_preprocessor = image_preprocessor
-        self.projector_generator = projector_generator
-        self.isolated_locator = isolated_locator
         self.phase_ref_site = phase_ref_site
         self.phase_ref_image = phase_ref_image
         self.trafo_site_to_image = trafo_site_to_image
+        self.projector_generator = projector_generator
+        self.isolated_locator = isolated_locator
         self.sites_shape = sites_shape
         self.emission_histogram_analysis = emission_histogram_analysis
+
+    @classmethod
+    def from_config(
+        cls, *args, config=None, **kwargs
+    ):
+        # Parse parameters
+        if len(args) == 1:
+            if isinstance(args[0], str):
+                return cls.from_config(config=args[0])
+            elif isinstance(args[0], dict):
+                return cls.from_config(**args[0])
+            else:
+                raise ValueError("Invalid parameters")
+        elif len(args) > 1:
+            raise ValueError("Invalid parameters")
+        # From config file
+        if config is not None:
+            config = dict(io.load(config))
+            config.update(kwargs)
+            return cls.from_config(**config)
+        # Construct object
+        if "image_preprocessor" in kwargs:
+            kwargs["image_preprocessor"] = misc.assume_construct_obj(
+                kwargs["image_preprocessor"], ImagePreprocessor
+            )
+        if "trafo_site_to_image" in kwargs:
+            _trafo = kwargs["trafo_site_to_image"]
+            if isinstance(_trafo, str):
+                _trafo = io.load(_trafo)
+            kwargs["trafo_site_to_image"] = misc.assume_construct_obj(
+                _trafo, AffineTrafo2d
+            )
+        else:
+            raise ValueError("`trafo_site_to_image` must be specified")
+        if "projector_generator" in kwargs:
+            _prjgen = kwargs["projector_generator"]
+            if not isinstance(_prjgen, proj_gen.ProjectorGenerator):
+                if "trafo_site_to_image" not in _prjgen:
+                    _prjgen["trafo_site_to_image"] = (
+                        kwargs["trafo_site_to_image"]
+                    )
+            kwargs["projector_generator"] = misc.assume_construct_obj(
+                _prjgen, proj_gen.ProjectorGenerator
+            )
+        if "isolated_locator" in kwargs:
+            kwargs["isolated_locator"] = misc.assume_construct_obj(
+                kwargs["isolated_locator"], IsolatedLocator
+            )
+        if "emission_histogram_analysis" in kwargs:
+            kwargs["emission_histogram_analysis"] = misc.assume_construct_obj(
+                kwargs["emission_histogram_analysis"],
+                EmissionHistogramAnalysis
+            )
+        return cls(**kwargs)
 
     def get_attr_str(self):
         keys = [
@@ -1216,7 +1275,7 @@ def plot_reconstruction_results(
     axs = fig.subplots(ncols=2, nrows=2)
     plot_shape = np.array(raw_image.shape)
     plot_rect = np.array(misc.cv_index_center_to_rect(
-        plot_shape//2, size=plot_shape-2*state_estimator.proj_shape
+        plot_shape//2, size=plot_shape-2*np.array(state_estimator.proj_shape)
     ))
     plot_lim = dict(
         xmin=plot_rect[0, 0], xmax=plot_rect[0, 1],
