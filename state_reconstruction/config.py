@@ -10,9 +10,13 @@ from libics import env
 
 
 _CONFIG = {
+    # File I/O
     "projector_cache_dir": os.path.join(
         env.DIR_LIBICS, "state_estimation", "projector_cache"
-    )
+    ),
+    # gen.trafo_gen
+    "trafo_gen.phase_ref_image": (256, 256),
+    "trafo_gen.phase_ref_site": (85, 85),
 }
 
 # Find configuration file path

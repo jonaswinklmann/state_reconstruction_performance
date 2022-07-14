@@ -8,13 +8,32 @@ import numpy as np
 
 from libics.tools.trafo.linear import AffineTrafo2d
 
+from state_reconstruction import config
+
 
 ###############################################################################
 
 
+def get_phase_ref():
+    """
+    Gets the default phase reference.
+
+    Returns
+    -------
+    phase_ref : `dict(str->Any)`
+        Phase reference dictionary containing:
+    phase_ref_image, phase_ref_site : `(float, float)`
+        Lattice phase transformation reference coordinates/sites.
+    """
+    return {
+        "phase_ref_image": config.get_config(key="trafo_gen.phase_ref_image"),
+        "phase_ref_site": config.get_config(key="trafo_gen.phase_ref_site")
+    }
+
+
 def get_trafo_site_to_image(
     magnification=None, angle=None, trafo_site_to_image=None,
-    phase_ref_image=(0, 0), phase_ref_site=(169, 84), phase=np.zeros(2)
+    phase_ref_image=None, phase_ref_site=None, phase=np.zeros(2)
 ):
     """
     Gets the default transformation.
@@ -44,6 +63,10 @@ def get_trafo_site_to_image(
         magnification = _m
     if angle is None:
         angle = _a
+    if phase_ref_image is None:
+        phase_ref_image = config.get_config(key="trafo_gen.phase_ref_image")
+    if phase_ref_site is None:
+        phase_ref_site = config.get_config(key="trafo_gen.phase_ref_site")
     # Setup trafo
     trafo = AffineTrafo2d()
     trafo.set_origin_axes(magnification=magnification, angle=angle)
@@ -54,7 +77,7 @@ def get_trafo_site_to_image(
 
 
 def get_phase_from_trafo_site_to_image(
-    trafo_site_to_image, phase_ref_image=(0, 0)
+    trafo_site_to_image, phase_ref_image=None
 ):
     """
     Gets the lattice phase and ref. integer site in `librbl` convention.
@@ -73,6 +96,8 @@ def get_phase_from_trafo_site_to_image(
     site : `np.ndarray(1, float)`
         Nearest integer lattice site.
     """
+    if phase_ref_image is None:
+        phase_ref_image = config.get_config(key="trafo_gen.phase_ref_image")
     site_float = trafo_site_to_image.coord_to_origin(phase_ref_image)
     phase = (site_float + 0.5) % 1 - 0.5
     site = np.round(site_float)
