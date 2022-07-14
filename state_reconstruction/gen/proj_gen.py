@@ -378,7 +378,10 @@ class ProjectorGenerator(AttrHashBase):
         self.proj_positivity = None
 
     def get_attr_str(self):
-        keys = ["rel_embedding_size", "proj_cache_built", "proj_positivity"]
+        keys = [
+            "rel_embedding_size", "proj_cache_built",
+            "proj_positivity", "proj_shape"
+        ]
         s = [f" → {k}: {str(getattr(self, k))}" for k in keys]
         return "\n".join(s)
 

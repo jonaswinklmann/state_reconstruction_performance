@@ -418,7 +418,7 @@ class EmissionHistogramAnalysis:
     def __init__(
         self, bin_range=None, strat_size=20, strat_prominence=0.08,
         sfit_idx_center_ratio=0.1, sfit_filter=1., n12_err_num=None,
-        bgth_signal_err_num=0.01
+        bgth_signal_err_num=0.001
     ):
         # Histogram parameters
         self.bin_range = bin_range
@@ -431,6 +431,26 @@ class EmissionHistogramAnalysis:
         self.n12_err_num = n12_err_num
         # Background threshold
         self.bgth_signal_err_num = bgth_signal_err_num
+
+    def get_attr_str(self):
+        keys = [
+            "bin_range", "strat_size", "strat_prominence",
+            "sfit_idx_center_ratio", "sfit_filter", "n12_err_num",
+            "bgth_signal_err_num"
+        ]
+        s = []
+        for k in keys:
+            v = getattr(self, k)
+            if v is not None:
+                s.append(f" → {k}: {str(v)}")
+        return "\n".join(s)
+
+    def __str__(self):
+        return f"{self.__class__.__name__}:\n{self.get_attr_str()}"
+
+    def __repr__(self):
+        s = f"<'{self.__class__.__name__}' at {hex(id(self))}>"
+        return f"{s}\n{self.get_attr_str()}"
 
     def get_emission_histogram(self, emissions):
         return get_emission_histogram(emissions, self.bin_range)
@@ -755,6 +775,8 @@ class StateEstimator:
         s.append(str(self.projector_generator))
         if self.isolated_locator:
             s.append(str(self.isolated_locator))
+        if self.emission_histogram_analysis:
+            s.append(str(self.emission_histogram_analysis))
         return "\n".join(s)
 
     def __str__(self):
