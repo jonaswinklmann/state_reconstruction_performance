@@ -4,6 +4,7 @@ State estimator.
 Assigns emission states to projections.
 """
 
+import copy
 import json
 import PIL
 import matplotlib as mpl
@@ -15,6 +16,7 @@ from uuid import uuid4 as uuid
 from libics.env.logging import get_logger
 from libics.core.data.arrays import ArrayData
 from libics.core import io
+from libics.core.util import misc
 from libics.tools.math.peaked import FitGaussian1d
 from libics.tools.math.signal import (
     find_histogram, find_peaks_1d_prominence, analyze_single_peak, PeakInfo
@@ -455,6 +457,8 @@ class ReconstructionResult(io.FileBase):
     state_estimator_id : `str`
         Identifier of :py:class:`StateEstimator` object that
         generated this reconstruction result.
+    outlier_ratio : `float`
+        Image preprocessing outlier ratio (see `:py:class:ImagePreprocessor`).
     trafo : `AffineTrafo2d`
         Affine transformation between sites and image coordinates.
     emissions : `ArrayData(2, float)`
@@ -491,7 +495,8 @@ class ReconstructionResult(io.FileBase):
     """
 
     _attributes = {
-        "state_estimator_id", "trafo", "trafo_phase", "emissions", "state",
+        "state_estimator_id", "outlier_ratio", "trafo", "trafo_phase",
+        "emissions", "state",
         "histogram", "hist_strat", "hist_center", "hist_threshold",
         "hist_error_prob", "hist_error_num", "hist_emission_num",
         "hist_peak_info", "success"
@@ -510,15 +515,25 @@ class ReconstructionResult(io.FileBase):
     def attributes(self):
         return {k: getattr(self, k) for k in self._attributes}
 
+    def copy(self):
+        attrs = {}
+        for k, v in self.attributes().items():
+            try:
+                attrs[k] = v.copy()
+            except AttributeError:
+                attrs[k] = copy.deepcopy(v)
+        return ReconstructionResult(**attrs)
+
     def get_attr_str(self):
         attrs = self.attributes().copy()
         if self.success:
             keys = [
-                "trafo_phase", "hist_strat", "hist_center", "hist_threshold",
+                "outlier_ratio", "trafo_phase",
+                "hist_strat", "hist_center", "hist_threshold",
                 "hist_error_prob", "hist_error_num", "hist_emission_num"
             ]
         else:
-            keys = ["trafo_phase", "success"]
+            keys = ["outlier_ratio", "trafo_phase", "success"]
         s = [f" → {k}: {str(attrs[k])}" for k in keys]
         return "\n".join(s)
 
@@ -638,6 +653,7 @@ class StateEstimator:
 
     def __init__(
         self, id=None,
+        image_preprocessor=None,
         projector_generator=None,
         isolated_locator=None,
         trafo_site_to_image=None,
@@ -655,6 +671,7 @@ class StateEstimator:
             phase_ref_site = _phase_ref["phase_ref_site"]
         # Assign attributes
         self.id = id
+        self.image_preprocessor = image_preprocessor
         self.projector_generator = projector_generator
         self.isolated_locator = isolated_locator
         self.phase_ref_site = phase_ref_site
@@ -665,10 +682,12 @@ class StateEstimator:
 
     def get_attr_str(self):
         keys = [
-            "trafo_site_to_image", "phase_ref_site",
+            "id", "trafo_site_to_image", "phase_ref_site",
             "phase_ref_image", "sites_shape"
         ]
         s = [f" → {k}: {str(getattr(self, k))}" for k in keys]
+        if self.image_preprocessor:
+            s.append(str(self.image_preprocessor))
         s.append(str(self.projector_generator.integrated_psf_generator))
         s.append(str(self.projector_generator))
         if self.isolated_locator:
@@ -727,7 +746,8 @@ class StateEstimator:
         return self.projector_generator.psf_supersample
 
     def get_phase_shifted_trafo(
-        self, phase=None, image=None, method="projection_optimization"
+        self, phase=None, image=None, method="projection_optimization",
+        preprocess_image=True
     ):
         """
         Gets a phase-shifted lattice transformation from an image.
@@ -741,6 +761,8 @@ class StateEstimator:
         method : `str`
             Method for determining lattice transformation:
             `"projection_optimization", "isolated_atoms"`.
+        preprocess_image : `bool`
+            Whether to preprocess image.
 
         Returns
         -------
@@ -748,11 +770,14 @@ class StateEstimator:
             Phase-shifted lattice transformation.
         """
         if phase is None:
+            # Image preprocessing
             if image is None:
                 raise ValueError("No `image` or `phase` given")
             image = np.array(image)
             if np.isfortran(image):
                 image = np.ascontiguousarray(image)
+            if preprocess_image and self.image_preprocessor:
+                image, _ = self.image_preprocessor.process_image(image)
             # From isolated atoms
             if (
                 method == "isolated_atoms"
@@ -809,12 +834,18 @@ class StateEstimator:
         res : `ReconstructionResult`
             Reconstruction result.
         """
+        # Preprocess image
         image = np.array(image)
         if np.isfortran(image):
             image = np.ascontiguousarray(image)
+        outlier_ratio = None
+        if self.image_preprocessor:
+            image, outlier_ratio = self.image_preprocessor.process_image(image)
         # Find trafo phase
         if new_trafo is None:
-            new_trafo = self.get_phase_shifted_trafo(image=image)
+            new_trafo = self.get_phase_shifted_trafo(
+                image=image, preprocess_image=False
+            )
         trafo_phase, _ = trafo_gen.get_phase_from_trafo_site_to_image(
             new_trafo, phase_ref_image=self.phase_ref_image
         )
@@ -857,6 +888,7 @@ class StateEstimator:
         # Package result
         res = dict(
             state_estimator_id=self.id,
+            outlier_ratio=outlier_ratio,
             trafo=new_trafo,
             trafo_phase=trafo_phase,
             emissions=emissions,
@@ -873,6 +905,10 @@ class StateEstimator:
                 hist_emission_num=histogram_data["emission_num"],
                 hist_peak_info=histogram_data["peak_info"],
                 state=state
+            ))
+        else:
+            res.update(dict(
+                state=np.zeros(self.sites_shape)
             ))
         res = ReconstructionResult(**res)
         return res
@@ -895,7 +931,9 @@ class StateEstimator:
         """
         # Parse parameters
         if res.success is not True:
-            raise ValueError("ReconstructionResult invalid")
+            self.LOGGER.warning(
+                "get_reconstructed_image: ReconstructionResult invalid"
+            )
         if np.isscalar(image_shape):
             image_shape = (image_shape, image_shape)
         # Get site positions inside image
@@ -942,7 +980,9 @@ class StateEstimator:
         """
         # Parse parameters
         if res.success is not True:
-            raise ValueError("ReconstructionResult invalid")
+            self.LOGGER.warning(
+                "get_reconstructed_emissions: ReconstructionResult invalid"
+            )
         if np.isscalar(image_shape):
             image_shape = (image_shape, image_shape)
         # Get all coordinates inside image
@@ -955,7 +995,10 @@ class StateEstimator:
         image_coords = np.array([_c[mask] for _c in image_coords])
         emissions_masked = np.array(res.emissions)[mask]
         # Separate empty and occupied sites
-        mask_occupied = emissions_masked > res.hist_threshold[0]
+        if res.success:
+            mask_occupied = emissions_masked > res.hist_threshold[0]
+        else:
+            mask_occupied = np.full_like(emissions_masked, True, dtype=bool)
         image_coords_occupied = np.array([
             _c[mask_occupied] for _c in image_coords
         ])
@@ -980,8 +1023,8 @@ class StateEstimator:
 def plot_reconstructed_emissions(
     res=None, image_coords_occupied=None, emissions_occupied=None,
     image_coords_empty=None, plot_range=True, colorbar=True, clabel=None,
-    ax=None, cmap="plasma", size_occupied=12, color_empty="grey", size_empty=1,
-    **_
+    cmap="plasma", size_occupied=12, color_empty="white", size_empty=1,
+    ax=None, color_ax=np.full(3, 0.75), **_
 ):
     """
     Plots reconstructed emissions as circles in their image coordinates.
@@ -1002,21 +1045,23 @@ def plot_reconstructed_emissions(
         Whether a color bar is shown.
     clabel : `str`
         Color bar label.
-    ax : `mpl.axes.Axes` or `None`
-        Matplotlib axes to plot into.
     cmap : `str`
         Color map for projected emissions.
     size_occupied, size_empty : `float`
         Marker size for occupied and empty sites.
     color_empty : `str`
         Color of empty sites.
+    ax : `mpl.axes.Axes` or `None`
+        Matplotlib axes to plot into.
+    color_ax : `str`
+        Background color of axes.
     """
     # Parse parameters
     if emissions_occupied is None:
         raise ValueError("No `emissions_occupied` available")
     if ax is None:
         ax = plot.gca()
-    if res is not None:
+    if res is not None and res.success is True:
         vmin = res.hist_threshold[0]
         vcenter = res.hist_center[1]
         vdif = vcenter - vmin
@@ -1057,6 +1102,7 @@ def plot_reconstructed_emissions(
     # Plot occupied sites
     colors_occupied = cmap((emissions_occupied - vmin) / 2 / vdif)
     ax.scatter(*image_coords_occupied, c=colors_occupied, s=size_occupied)
+    ax.set_facecolor(color_ax)
 
 
 def plot_reconstructed_histogram(
@@ -1066,6 +1112,32 @@ def plot_reconstructed_histogram(
     min_ymax=15,
     ax=None
 ):
+    """
+    Plots reconstructed emissions histogram.
+
+    Parameters
+    ----------
+    res : `ReconstructionResult`
+        Reconstruction result containing histogram.
+    rel_margin : `float`
+        Margin of the plot relative to n0 and n12 lines.
+    size_histogram : `float`
+        Marker size of histogram points.
+    color_histogram : `str`
+        Color of histogram plot.
+    alpha_histogram : `float`
+        Opacity of histogram fill.
+    colors_fit : `(str, str)`
+        Colors of (n0, n1) histogram fits.
+    linewidth_fit : `float`
+        Line width of histogram fits.
+    color_thr : `str`
+        Color of n01 and n12 threshold lines.
+    min_ymax : `float`
+        Minimum value of the y-axis maximum.
+    ax : `mpl.axes.Axes` or `None`
+        Matplotlib axes to plot into.
+    """
     # Parse parameters
     if ax is None:
         ax = plot.gca()
@@ -1106,3 +1178,93 @@ def plot_reconstructed_histogram(
     ax.axvline(res.hist_threshold[1], color=color_thr)
     # Axes properties
     plot.style_axes(ax=ax, ymin=ymin, ymax=ymax, xmin=xmin)
+
+
+def plot_reconstruction_results(
+    state_estimator, rec_res, raw_image, image_id=None,
+    fig=None, figsize=(14, 10),
+    kwargs_plot_image={}, kwargs_plot_histogram={}, kwargs_plot_emissions={}
+):
+    """
+    Performs a default plot of reconstruction results.
+
+    Parameters
+    ----------
+    state_estimator : `StateEstimator`
+        State estimator object used for reconstruction.
+    rec_res : `ReconstructionResult`
+        Reconstruction result to be plotted.
+    raw_image : `Array[2, float]`
+        Raw image.
+    image_id : `str`
+        Image identifier.
+    fig : `mpl.figure.Figure`
+        Matplotlib figure to be plotted into. Overwrites `figsize`.
+    figsize : `(float, float)`
+        Matplotlib figure size.
+    kwargs_plot_... : `dict(str->Any)`
+        Keyword arguments for various underlying plot functions.
+
+    Returns
+    -------
+    fig : `mpl.figure.Figure`
+        Generated matplotlib figure.
+    """
+    # Set plot parameters
+    if fig is None:
+        fig = plot.figure(figsize=figsize)
+    axs = fig.subplots(ncols=2, nrows=2)
+    plot_shape = np.array(raw_image.shape)
+    plot_rect = np.array(misc.cv_index_center_to_rect(
+        plot_shape//2, size=plot_shape-2*state_estimator.proj_shape
+    ))
+    plot_lim = dict(
+        xmin=plot_rect[0, 0], xmax=plot_rect[0, 1],
+        ymin=plot_rect[1, 0], ymax=plot_rect[1, 1]
+    )
+    # Images
+    rec_image = state_estimator.get_reconstructed_image(rec_res)
+    title_appendix = "" if image_id is None else f" ({str(image_id)})"
+    if rec_res.outlier_ratio is None:
+        raw_appendix = ""
+    else:
+        raw_appendix = f", Outlier: {rec_res.outlier_ratio:.1f}"
+    plt_param = dict(
+        cmap="hot", vmin=0, vmax=np.max(rec_image)*1.25,
+        colorbar=True, clabel="Camera counts"
+    )
+    plt_param.update(kwargs_plot_image)
+    plot.pcolorim(
+        np.array(raw_image), ax=axs[0, 0],
+        title="Raw image" + title_appendix + raw_appendix, **plt_param
+    )
+    plot.pcolorim(
+        rec_image, ax=axs[1, 0],
+        title="Reconstructed image" + title_appendix, **plt_param
+    )
+    [plot.style_axes(ax=ax, **plot_lim) for ax in axs[:, 0]]
+    # Emissions
+    ax = axs[0, 1]
+    emissions = state_estimator.get_reconstructed_emissions(rec_res)
+    emissions.update(dict(clabel="Projected emissions"))
+    emissions.update(kwargs_plot_emissions)
+    plot_reconstructed_emissions(res=rec_res, ax=ax, **emissions)
+    plot.style_axes(ax=ax, title=(
+        f"Sites (Rec-ID: {state_estimator.id}), Phase: "
+        f"[{', '.join([f'{_e:.2f}' for _e in rec_res.trafo_phase])}]"
+    ), **plot_lim)
+    # Histogram
+    ax = axs[1, 1]
+    plt_param = dict(min_ymax=50)
+    plt_param.update(kwargs_plot_histogram)
+    plot_reconstructed_histogram(rec_res, ax=ax, **plt_param)
+    if rec_res.success:
+        plot.style_axes(ax=ax, title=(
+            f"States: {str(rec_res.hist_emission_num)}, Error (abs.): "
+            f"[{', '.join([f'{_e:.2e}' for _e in rec_res.hist_error_num])}]"
+        ))
+    else:
+        plot.style_axes(ax=ax, title="Reconstruction result invalid")
+    # Return figure
+    plot.style_figure(tight_layout=True)
+    return fig

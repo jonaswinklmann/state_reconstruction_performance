@@ -6,6 +6,14 @@ state_reconstruction.est
     :undoc-members:
     :show-inheritance:
 
+image_est
+---------
+
+.. automodule:: state_reconstruction.est.image_est
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 iso_est
 -------
 
