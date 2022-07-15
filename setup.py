@@ -35,7 +35,7 @@ setup(name='state_reconstruction',
             'gui_scripts': []
       },
       install_requires=[
-            'numba', 'numpy', 'PIL', 'scipy',
+            'numba', 'numpy', 'Pillow', 'scipy',
       ],
       python_requires='>=3.6',
       dependency_links=[
