@@ -1,5 +1,10 @@
 from setuptools import setup, find_packages
-from .state_reconstruction.version import __version__
+
+
+version = {}
+with open("./state_reconstruction/version.py") as f:
+    exec(f.read(), version)
+__version__ = version["__version__"]
 
 
 def readme():
