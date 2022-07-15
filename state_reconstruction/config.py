@@ -17,6 +17,7 @@ _CONFIG = {
     # gen.trafo_gen
     "trafo_gen.phase_ref_image": (256, 256),
     "trafo_gen.phase_ref_site": (85, 85),
+    "trafo_gen.trafo_site_to_image": {}
 }
 
 # Find configuration file path

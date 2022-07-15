@@ -488,6 +488,8 @@ class ReconstructionResult(io.FileBase):
         Image preprocessing outlier ratios (see `:py:class:ImagePreprocessor`).
     trafo : `AffineTrafo2d`
         Affine transformation between sites and image coordinates.
+    trafo_phase, trafo_phase_ref_image, trafo_phase_ref_site : `(float, float)`
+        Phase and phase references of transformation.
     emissions : `ArrayData(2, float)`
         Image projected onto sites.
     state : `ArrayData(2, int)`
@@ -522,7 +524,8 @@ class ReconstructionResult(io.FileBase):
     """
 
     _attributes = {
-        "state_estimator_id", "outlier_ratios", "trafo", "trafo_phase",
+        "state_estimator_id", "outlier_ratios", "trafo",
+        "trafo_phase", "trafo_phase_ref_image", "trafo_phase_ref_site",
         "emissions", "state",
         "histogram", "hist_strat", "hist_center", "hist_threshold",
         "hist_error_prob", "hist_error_num", "hist_emission_num",
@@ -693,11 +696,10 @@ class StateEstimator:
         # Parse parameters
         if id is None:
             id = str(uuid()).split("-")[-1]
-        _phase_ref = trafo_gen.get_phase_ref()
         if phase_ref_image is None:
-            phase_ref_image = _phase_ref["phase_ref_image"]
+            phase_ref_image = trafo_gen.TrafoManager.get_phase_ref_image()
         if phase_ref_site is None:
-            phase_ref_site = _phase_ref["phase_ref_site"]
+            phase_ref_site = trafo_gen.TrafoManager.get_phase_ref_site()
         # Assign attributes
         self.id = id
         self.image_preprocessor = image_preprocessor
@@ -978,6 +980,8 @@ class StateEstimator:
             outlier_ratios=outlier_ratios,
             trafo=new_trafo,
             trafo_phase=trafo_phase,
+            trafo_phase_ref_image=self.phase_ref_image,
+            trafo_phase_ref_site=self.phase_ref_site,
             emissions=emissions,
             histogram=histogram,
             success=state_estimation_success
