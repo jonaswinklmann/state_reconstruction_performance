@@ -9,6 +9,7 @@ import json
 import PIL
 import matplotlib as mpl
 import numpy as np
+import os
 import scipy.optimize
 import scipy.ndimage
 from uuid import uuid4 as uuid
@@ -16,7 +17,7 @@ from uuid import uuid4 as uuid
 from libics.env.logging import get_logger
 from libics.core.data.arrays import ArrayData
 from libics.core import io
-from libics.core.util import misc
+from libics.core.util import misc, path
 from libics.tools.math.peaked import FitGaussian1d
 from libics.tools.math.signal import (
     find_histogram, find_peaks_1d_prominence, analyze_single_peak, PeakInfo
@@ -24,6 +25,7 @@ from libics.tools.math.signal import (
 from libics.tools.trafo.linear import AffineTrafo2d
 from libics.tools import plot
 
+from state_reconstruction.config import get_config
 from state_reconstruction.gen import trafo_gen, image_gen, proj_gen
 from .image_est import ImagePreprocessor
 from .iso_est import IsolatedLocator
@@ -712,6 +714,17 @@ class StateEstimator:
         self.emission_histogram_analysis = emission_histogram_analysis
 
     @classmethod
+    def discover_configs(cls, config_dir=None):
+        """Gets a list of configuration file paths."""
+        if config_dir is None:
+            config_dir = get_config("state_estimator_config_dir")
+        return [
+            os.path.join(config_dir, fn) for fn in path.get_folder_contents(
+                config_dir, regex=r"*.json"
+            ).files_matched
+        ]
+
+    @classmethod
     def from_config(
         cls, *args, config=None, **kwargs
     ):
@@ -727,6 +740,10 @@ class StateEstimator:
             raise ValueError("Invalid parameters")
         # From config file
         if config is not None:
+            if not os.path.exists(config):
+                config = os.path.join(
+                    get_config("state_estimator_config_dir"), config
+                )
             config = dict(io.load(config))
             config.update(kwargs)
             return cls.from_config(**config)
