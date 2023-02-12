@@ -2,6 +2,9 @@
 API for `state_reconstruction` package.
 """
 
+# Configuration
+from .config import get_config, set_config
+
 # Generators
 from .gen.trafo_gen import (
     TrafoManager,

@@ -63,6 +63,10 @@ class TrafoManager:
                 )
 
     @classmethod
+    def discover_configs(cls):
+        return cls._trafos_site_to_image.keys()
+
+    @classmethod
     def get_phase_ref_image(cls):
         return np.copy(cls._phase_ref_image)
 

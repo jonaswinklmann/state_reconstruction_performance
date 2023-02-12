@@ -720,7 +720,7 @@ class StateEstimator:
             config_dir = get_config("state_estimator_config_dir")
         return [
             os.path.join(config_dir, fn) for fn in path.get_folder_contents(
-                config_dir, regex=r"*.json"
+                config_dir, regex=r".json$"
             ).files_matched
         ]
 
@@ -740,6 +740,7 @@ class StateEstimator:
             raise ValueError("Invalid parameters")
         # From config file
         if config is not None:
+            config = misc.assume_endswith(config, ".json")
             if not os.path.exists(config):
                 config = os.path.join(
                     get_config("state_estimator_config_dir"), config
@@ -939,7 +940,7 @@ class StateEstimator:
             Reconstruction result.
         """
         # Preprocess image
-        image = np.array(image)
+        image = np.array(image, dtype=float)
         if np.isfortran(image):
             image = np.ascontiguousarray(image)
         outlier_ratios = None
