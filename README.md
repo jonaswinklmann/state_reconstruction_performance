@@ -33,4 +33,15 @@ pip install ./state_reconstruction
 
 ## Getting started
 
-...
+The package API is defined in the file [api.py](./state_reconstruction/api.py).
+
+Tutorials are provided as Jupyter notebooks in the directory [scripts](./scripts):
+* The notebook `image_generation` demonstrates how to
+  * set up coordinate transformations between site and image coordinates,
+  * define point spread function generator objects,
+  * generate noisy fluorescence images.
+* The notebook `state_reconstruction` uses the files generated in `image_generation` to demonstrate how to set up the reconstruction process, including
+  * image preprocessing for outlier removal,
+  * image-to-site-space projector generation,
+  * histogram analysis,
+  * usage of the main `StateEstimator` object.
