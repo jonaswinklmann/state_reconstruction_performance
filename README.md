@@ -1,6 +1,6 @@
 # State reconstruction
 
-Quantum state reconstruction from microscopic fluorescence images of atoms on a lattice.
+Fluorescence emission state reconstruction from microscopic fluorescence images of atoms on a lattice.
 
 Includes the following functionalities:
 * Simulate noisy fluorescence images
