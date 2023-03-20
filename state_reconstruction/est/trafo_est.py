@@ -635,7 +635,7 @@ def get_subimage_emission_std(
 
 
 def get_trafo_phase_from_projections(
-    im, prjgen, phase_ref_image=(0, 0),
+    im, prjgen, phase_ref_image=(0, 0), phase_ref_site=(0, 0),
     subimage_shape=None, subsite_shape=None, search_range=1
 ):
     """
@@ -647,7 +647,7 @@ def get_trafo_phase_from_projections(
         Fluorescence image.
     prjgen : `srec.ProjectionGenerator`
         Projection generator object.
-    phase_ref_image : `(int, int)`
+    phase_ref_image, phase_ref_site : `(int, int)`
         Lattice phase reference in fluorescence image coordinates.
     subimage_shape : `(int, int)` or `None`
         Shape of subimages (subdivisions of full image) used for
@@ -666,6 +666,7 @@ def get_trafo_phase_from_projections(
     # Parse parameters
     if subimage_shape is None:
         subimage_shape = np.copy(prjgen.psf_shape)
+    subimage_shape = np.array(subimage_shape, dtype=int)
     # Cropped image to avoid checking image borders
     proj_shape = np.array(prjgen.proj_shape)
     im_roi = im[proj_shape[0]:-proj_shape[0], proj_shape[1]:-proj_shape[1]]
@@ -673,11 +674,11 @@ def get_trafo_phase_from_projections(
     im_crop = im_roi[tuple(slice(None, _s) for _s in crop_shape)]
     grid_shape = crop_shape // subimage_shape
     # Get subimage with maximum signal variance as proxy for mixed filling
-    subimages = np.reshape(
+    subimages = np.moveaxis(np.reshape(
         im_crop,
         (grid_shape[0], subimage_shape[0], grid_shape[1], subimage_shape[1])
-    )
-    subimages_std = np.std(subimages, axis=(1, 3))
+    ), 2, 1)
+    subimages_std = np.std(subimages, axis=(2, 3))
     idx = np.unravel_index(np.argmax(subimages_std), subimages_std.shape)
     subimage_center = ((np.array(idx) + 0.5) * subimage_shape).astype(int)
     subimage_center += proj_shape
@@ -698,12 +699,14 @@ def get_trafo_phase_from_projections(
         get_subimage_emission_std, opt_shift_int,
         args=(subimage_center, im, prjgen),
         kwargs=dict(subsite_shape=subsite_shape),
-        dx=1/prjgen.psf_supersample/2, search_range=search_range,
+        dx=1/prjgen.psf_supersample,
+        search_range=int(np.ceil(search_range*prjgen.psf_supersample/2)),
         results_cache=results_cache
     )
     # Calculate phase
     opt_trafo = get_shifted_subimage_trafo(
-        prjgen.trafo_site_to_image, opt_shift_float, subimage_center
+        prjgen.trafo_site_to_image, opt_shift_float, subimage_center,
+        site=phase_ref_site
     )
     phase, _ = trafo_gen.get_phase_from_trafo_site_to_image(
         opt_trafo, phase_ref_image=phase_ref_image

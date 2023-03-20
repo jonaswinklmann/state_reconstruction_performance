@@ -911,7 +911,8 @@ class StateEstimator:
                     )
                 phase = get_trafo_phase_from_projections(
                     image, self.projector_generator,
-                    phase_ref_image=self.phase_ref_image
+                    phase_ref_image=self.phase_ref_image,
+                    phase_ref_site=self.phase_ref_site
                 )
         # Construct phase-shifted trafo
         new_trafo = trafo_gen.get_trafo_site_to_image(
