@@ -1151,8 +1151,9 @@ def plot_reconstructed_emissions(
         `image_coords_occupied`.
     plot_range : `bool``
         Whether `xlim, ylim` of the `ax` are automatically set.
-    colorbar : `bool`
+    colorbar : `bool` or `mpl.axes.Axes`
         Whether a color bar is shown.
+        If `mpl.axes.Axes`, uses `colorbar` as color bar axes.
     clabel : `str`
         Color bar label.
     cmap : `str`
@@ -1198,13 +1199,14 @@ def plot_reconstructed_emissions(
         ((xmin, xmax), (ymin, ymax)) = plot_rect
         plot.style_axes(ax=ax, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
     # Generate colorbar
-    if colorbar is True:
+    if colorbar:
         background = ArrayData(np.full((2, 2), np.nan))
         for dim in range(2):
             background.set_dim(dim, center=np.mean(plot_rect[dim]), step=1)
         plot.pcolorim(
             background, ax=ax, cmap=cmap,
-            vmin=vmin, vmax=vmin+2*vdif, colorbar=True, clabel=clabel
+            vmin=vmin, vmax=vmin+2*vdif, colorbar=colorbar, clabel=clabel,
+            rasterized=True
         )
     # Plot empty sites
     if image_coords_empty is not None:
