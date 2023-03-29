@@ -1210,7 +1210,8 @@ def plot_reconstructed_emissions(
         )
     # Plot empty sites
     if image_coords_empty is not None:
-        ax.scatter(*image_coords_empty, s=size_empty, color=color_empty)
+        ax.scatter(*image_coords_empty, s=size_empty, color=color_empty,
+                   rasterized=True)
     # Plot occupied sites
     colors_occupied = cmap((emissions_occupied - vmin) / 2 / vdif)
     ax.scatter(*image_coords_occupied, c=colors_occupied, s=size_occupied)
