@@ -1336,7 +1336,9 @@ def plot_reconstruction_results(
         ymin=plot_rect[1, 0], ymax=plot_rect[1, 1]
     )
     # Images
-    rec_image = state_estimator.get_reconstructed_image(rec_res)
+    rec_image = state_estimator.get_reconstructed_image(
+        rec_res, image_shape=raw_image.shape
+    )
     title_appendix = "" if image_id is None else f" ({str(image_id)})"
     if rec_res.outlier_ratios is None:
         raw_appendix = ""
@@ -1361,7 +1363,9 @@ def plot_reconstruction_results(
     [plot.style_axes(ax=ax, **plot_lim) for ax in axs[:, 0]]
     # Emissions
     ax = axs[0, 1]
-    emissions = state_estimator.get_reconstructed_emissions(rec_res)
+    emissions = state_estimator.get_reconstructed_emissions(
+        rec_res, image_shape=raw_image.shape
+    )
     emissions.update(dict(clabel="Projected emissions"))
     emissions.update(kwargs_plot_emissions)
     plot_reconstructed_emissions(res=rec_res, ax=ax, **emissions)
