@@ -42,4 +42,5 @@ setup(name='state_reconstruction',
             'https://github.com/david-wei/libics'
       ],
       include_package_data=True,
+      package_data={'': ['*.so','*.dll']},
       zip_safe=False)

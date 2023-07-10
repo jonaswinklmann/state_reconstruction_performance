@@ -4,6 +4,12 @@ State estimator.
 Assigns emission states to projections.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__) + "/../lib/")
+import state_reconstruction_cpp
+from datetime import datetime
+
 import copy
 import json
 import PIL
@@ -909,11 +915,9 @@ class StateEstimator:
                         f"Method `{str(method)}` unavailable, "
                         f"using `projection_optimization`"
                     )
-                phase = get_trafo_phase_from_projections(
-                    image, self.projector_generator,
-                    phase_ref_image=self.phase_ref_image,
-                    phase_ref_site=self.phase_ref_site
-                )
+                srec_cpp = state_reconstruction_cpp.TrafoEstimator()
+                phase = srec_cpp.get_trafo_phase_from_projections(image, self.projector_generator, self.phase_ref_image, self.phase_ref_site)
+
         # Construct phase-shifted trafo
         new_trafo = trafo_gen.get_trafo_site_to_image(
             trafo_site_to_image=self.trafo_site_to_image, phase=phase,
@@ -941,6 +945,7 @@ class StateEstimator:
             Reconstruction result.
         """
         # Preprocess image
+        start_time = datetime.now()
         image = np.array(image, dtype=float)
         if np.isfortran(image):
             image = np.ascontiguousarray(image)
@@ -949,6 +954,8 @@ class StateEstimator:
             image, outlier_ratios = (
                 self.image_preprocessor.process_image(image)
             )
+        t = datetime.now() - start_time
+        print("After preprocessing: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Find trafo phase
         if new_trafo is None:
             new_trafo = self.get_phase_shifted_trafo(
@@ -957,6 +964,8 @@ class StateEstimator:
         trafo_phase, _ = trafo_gen.get_phase_from_trafo_site_to_image(
             new_trafo, phase_ref_image=self.phase_ref_image
         )
+        t = datetime.now() - start_time
+        print("After find trafo phase: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Construct local images
         emissions = ArrayData(np.zeros(self.sites_shape, dtype=float))
         emissions_coord = emissions.get_var_meshgrid()
@@ -973,11 +982,15 @@ class StateEstimator:
             *rec_coord_image, image, self.proj_shape,
             psf_supersample=self.psf_supersample
         )
+        t = datetime.now() - start_time
+        print("After constructing local images: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Apply projectors and embed local images
         local_emissions = apply_projectors(
             local_images, self.projector_generator
         )
         emissions.data[emissions_mask] = local_emissions
+        t = datetime.now() - start_time
+        print("After applying projectors: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Perform histogram analysis for state discrimination
         eha = self.emission_histogram_analysis
         histogram = eha.get_emission_histogram(local_emissions)
@@ -993,6 +1006,8 @@ class StateEstimator:
             )
             histogram_data = None
             state_estimation_success = False
+        t = datetime.now() - start_time
+        print("After performing histogram analysis: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Package result
         res = dict(
             state_estimator_id=self.id,
@@ -1021,6 +1036,8 @@ class StateEstimator:
                 state=np.zeros(self.sites_shape)
             ))
         res = ReconstructionResult(**res)
+        t = datetime.now() - start_time
+        print("After packaging results: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         return res
 
     def get_reconstructed_image(self, res, image_shape=(512, 512)):

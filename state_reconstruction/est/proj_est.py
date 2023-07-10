@@ -16,7 +16,7 @@ import numpy as np
 
 @nb.njit(
     nb.void(nb.float64[:, :, :], nb.float64[:, :],
-            nb.int32[:], nb.int32[:], nb.int32[:], nb.int32[:]),
+            nb.int64[:], nb.int64[:], nb.int64[:], nb.int64[:]),
     parallel=True, cache=True
 )
 def _slice_local_image(local_images, image, X_min, X_max, Y_min, Y_max):
