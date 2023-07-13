@@ -12,13 +12,13 @@
 #include "trafo_est.hpp"
 #include "trafo_gen.hpp"
 
-AffineTrafo2D get_shifted_subimage_trafo(AffineTrafo2D trafo, Eigen::VectorXf shift, 
-    Eigen::VectorXf subimage_center, std::optional<Eigen::VectorXf> site = std::nullopt)
+AffineTrafo2D get_shifted_subimage_trafo(AffineTrafo2D trafo, Eigen::VectorXd shift, 
+    Eigen::VectorXd subimage_center, std::optional<Eigen::VectorXd> site = std::nullopt)
 {
     // Gets the lattice transformation from subimage center and shift.
     if(!site.has_value())
     {
-        site = Eigen::Vector2f();
+        site = Eigen::Vector2d();
         site.value() << 0,0;
     }
     AffineTrafo2D shifted_trafo = AffineTrafo2D(trafo.matrix, trafo.offset);
@@ -26,7 +26,7 @@ AffineTrafo2D get_shifted_subimage_trafo(AffineTrafo2D trafo, Eigen::VectorXf sh
     return shifted_trafo;
 }
 
-float get_subimage_emission_std(Eigen::VectorXf shift, Eigen::Array2i subimage_center, 
+double get_subimage_emission_std(Eigen::VectorXd shift, Eigen::Array2i subimage_center, 
     const Eigen::Array<double,-1,-1,Eigen::RowMajor>& full_image, py::object& prjgen, Eigen::Array2i subsite_shape = {5, 5})
 {
     // Performs projection with given transformation shift and subimage.
@@ -39,9 +39,9 @@ float get_subimage_emission_std(Eigen::VectorXf shift, Eigen::Array2i subimage_c
     
     // Set sites
     std::vector<Eigen::Array2i> subsiteCoords;
-    for(int i = (int)(floor((float)(-subsite_shape[0]) / 2.)); i < (subsite_shape[0] + 1) / 2 + 1; i++)
+    for(int i = (int)(floor((double)(-subsite_shape[0]) / 2.)); i < (subsite_shape[0] + 1) / 2 + 1; i++)
     {
-        for(int j = (int)(floor((float)(-subsite_shape[1]) / 2.)); j < (subsite_shape[1] + 1) / 2 + 1; j++)
+        for(int j = (int)(floor((double)(-subsite_shape[1]) / 2.)); j < (subsite_shape[1] + 1) / 2 + 1; j++)
         {
             Eigen::Array2i coords;
             coords << i,j;
@@ -49,12 +49,12 @@ float get_subimage_emission_std(Eigen::VectorXf shift, Eigen::Array2i subimage_c
         }
     }
     // Find coordinates and keep only sites within image
-    AffineTrafo2D shiftedTrafo = get_shifted_subimage_trafo(prjgenTrafoCpp, shift, subimage_center.cast<float>());
+    AffineTrafo2D shiftedTrafo = get_shifted_subimage_trafo(prjgenTrafoCpp, shift, subimage_center.cast<double>());
     Eigen::Array2i halfProjShape = projShape / 2;
-    std::vector<Eigen::Vector2f> subimageCoords;
+    std::vector<Eigen::Vector2d> subimageCoords;
     for (const Eigen::Array2i& coord : subsiteCoords)
     {
-        Eigen::Vector2f shiftedCoord = shiftedTrafo.coord_to_target(coord.cast<float>());
+        Eigen::Vector2d shiftedCoord = shiftedTrafo.coord_to_target(coord.cast<double>());
         if(shiftedCoord[0] > (halfProjShape[0] + 1) && shiftedCoord[0] < (full_image.rows() - halfProjShape[0] - 1) && 
             shiftedCoord[1] > (halfProjShape[1] + 1) && shiftedCoord[1] < (full_image.cols() - halfProjShape[1] - 1))
         {
@@ -66,7 +66,7 @@ float get_subimage_emission_std(Eigen::VectorXf shift, Eigen::Array2i subimage_c
     auto localImages = getLocalImages(subimageCoords, full_image, projShape, psfSupersample);
     // Perform projection
     auto emissions = apply_projectors(localImages, prjgen);
-    Eigen::ArrayXf emissionsEigen(Eigen::Map<Eigen::ArrayXf>(emissions.data(), emissions.size()));
+    Eigen::ArrayXd emissionsEigen(Eigen::Map<Eigen::ArrayXd>(emissions.data(), emissions.size()));
     return std::sqrt((emissionsEigen - emissionsEigen.mean()).square().sum() / (emissionsEigen.size()));
 }
 
@@ -75,8 +75,8 @@ std::vector<int> getSubsiteShape(py::object& prjgen, Eigen::Array2i& subimageSha
     // Gets the default subimage sites shape.
     py::object affineTrafo = prjgen.attr("trafo_site_to_image");
     py::object getOriginAxesFunction = affineTrafo.attr("get_origin_axes");
-    std::vector<float> magnification = getOriginAxesFunction().cast<std::vector<std::vector<float>>>()[0];
-    Eigen::Array2i subsiteSize(subimageShape.cast<float>().mean() * 2 / (magnification[0] + magnification[1]) + 0.5);
+    std::vector<double> magnification = getOriginAxesFunction().cast<std::vector<std::vector<double>>>()[0];
+    Eigen::Array2i subsiteSize(subimageShape.cast<double>().mean() * 2 / (magnification[0] + magnification[1]) + 0.5);
     std::vector<int> ret(minShape);
     if(subsiteSize[0] > ret[0])
     {
@@ -89,7 +89,7 @@ std::vector<int> getSubsiteShape(py::object& prjgen, Eigen::Array2i& subimageSha
     return ret;
 }
 
-Eigen::VectorXf TrafoEstimator::get_trafo_phase_from_projections(const py::EigenDRef<const Eigen::Array<double,-1,-1,Eigen::RowMajor>>& im, 
+Eigen::VectorXd TrafoEstimator::get_trafo_phase_from_projections(const py::EigenDRef<const Eigen::Array<double,-1,-1,Eigen::RowMajor>>& im, 
     py::object& prjgen, std::vector<int> phase_ref_image, std::vector<int> phase_ref_site,
     std::optional<std::vector<int>> subimage_shape, std::optional<std::vector<int>> subsite_shape, int search_range)
 {
@@ -165,7 +165,7 @@ Eigen::VectorXf TrafoEstimator::get_trafo_phase_from_projections(const py::Eigen
             }
         }
     }
-    Eigen::Array2i subimageCenter = (Eigen::Array2f({iMax + 0.5, jMax + 0.5}) * (subimageShapeEigen.cast<float>())).cast<int>() + projShape;
+    Eigen::Array2i subimageCenter = (Eigen::Array2d({iMax + 0.5, jMax + 0.5}) * (subimageShapeEigen.cast<double>())).cast<int>() + projShape;
 
     // Get phase by maximizing projected emissions variance
     if (!subsite_shape.has_value())
@@ -173,23 +173,23 @@ Eigen::VectorXf TrafoEstimator::get_trafo_phase_from_projections(const py::Eigen
         subsite_shape = getSubsiteShape(prjgen, subimageShapeEigen);
     }
     Eigen::Array2i subsiteShapeEigen(subsite_shape.value().data());
-    Eigen::VectorXf initShift(2);
+    Eigen::VectorXd initShift(2);
     initShift << 0,0;
-    Eigen::VectorXf dx(1);
+    Eigen::VectorXd dx(1);
     dx << 1;
     // Maximize on integer pixels
-    std::map<Eigen::VectorXf,float,EigenVectorXfCompare> resultsCache = std::map<Eigen::VectorXf,float,EigenVectorXfCompare>();
+    std::map<Eigen::VectorXd,double,EigenVectorXdCompare> resultsCache = std::map<Eigen::VectorXd,double,EigenVectorXdCompare>();
     Eigen::VectorXi optShiftInt = maximize_discrete_stepwise_cpp(get_subimage_emission_std, initShift, 
         resultsCache, dx, search_range, 10000, subimageCenter, im, prjgen, subsiteShapeEigen).cast<int>();
     // Maximize on subpixels
-    float psfSuperSample = prjgen.attr("psf_supersample").cast<float>();
-    dx = Eigen::VectorXf(1);
+    double psfSuperSample = prjgen.attr("psf_supersample").cast<double>();
+    dx = Eigen::VectorXd(1);
     dx << 1. / psfSuperSample;
-    Eigen::VectorXf optShiftFloat = maximize_discrete_stepwise_cpp(get_subimage_emission_std, optShiftInt.cast<float>(),
+    Eigen::VectorXd optShiftFloat = maximize_discrete_stepwise_cpp(get_subimage_emission_std, optShiftInt.cast<double>(),
         resultsCache, dx, (int)(ceil(search_range * psfSuperSample / 2)), 10000, subimageCenter, im, prjgen, subsiteShapeEigen);
     // Calculate phase
     py::object trafo = prjgen.attr("trafo_site_to_image");
-    AffineTrafo2D optTrafo = get_shifted_subimage_trafo(AffineTrafo2D(trafo), optShiftFloat, subimageCenter.cast<float>(), phaseRefSiteEigen.cast<float>());
-    Eigen::VectorXf phase = get_phase_from_trafo_site_to_image(optTrafo, phaseRefImageEigen.cast<float>());
+    AffineTrafo2D optTrafo = get_shifted_subimage_trafo(AffineTrafo2D(trafo), optShiftFloat, subimageCenter.cast<double>(), phaseRefSiteEigen.cast<double>());
+    Eigen::VectorXd phase = get_phase_from_trafo_site_to_image(optTrafo, phaseRefImageEigen.cast<double>());
     return phase;
 }

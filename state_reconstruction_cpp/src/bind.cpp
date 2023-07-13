@@ -3,6 +3,8 @@
 #include "linear.hpp"
 #include "optimize.hpp"
 #include "trafo_est.hpp"
+#include "trafo_gen.hpp"
+#include "state_est.hpp"
 
 PYBIND11_MODULE(state_reconstruction_cpp, m) {
     m.doc() = "pybind11 state_reconstruction_cpp module";
@@ -13,7 +15,10 @@ PYBIND11_MODULE(state_reconstruction_cpp, m) {
         py::arg("phase_ref_image")=py::make_tuple(0, 0), py::arg("phase_ref_site")=py::make_tuple(0, 0), 
         py::arg("subimage_shape")=std::nullopt, py::arg("subsite_shape")=std::nullopt, py::arg("search_range")=1);
 
-    /*py::class_<StateEstimator>(m, "StateEstimator")
+    m.def("get_phase_from_trafo_site_to_image_py", &get_phase_from_trafo_site_to_image_py, py::arg("trafoPy"), py::arg("phase_ref_image"));
+
+    py::class_<StateEstimator>(m, "StateEstimator")
         .def(py::init<>())
-        .def("reconstruct", &StateEstimator::reconstruct, "A function that reconstructs an image", py::arg("image"));*/
+        .def("constructLocalImagesAndApplyProjectors", &StateEstimator::constructLocalImagesAndApplyProjectors, py::arg("image"), 
+            py::arg("sitesShape"), py::arg("trafoPy"), py::arg("projShape"), py::arg("psfSupersample"), py::arg("projector_generator"), py::arg("emissions"));
 }

@@ -3,12 +3,12 @@
 #include <vector>
 #include <fstream>
 
-struct EigenVectorXfCompare
+struct EigenVectorXdCompare
 {
-    bool operator()(const Eigen::VectorXf& a, const Eigen::VectorXf& b) const
+    bool operator()(const Eigen::VectorXd& a, const Eigen::VectorXd& b) const
     {
         assert(a.size()==b.size());
-        for(Eigen::VectorXf::Index i=0;i<a.size();++i)
+        for(Eigen::VectorXd::Index i=0;i<a.size();++i)
         {
             if(a[i]<b[i]) return true;
             if(a[i]>b[i]) return false;
@@ -17,16 +17,30 @@ struct EigenVectorXfCompare
     }
 };
 
-static std::string toString(const Eigen::MatrixXf& mat){
+struct EigenVectorXiCompare
+{
+    bool operator()(const Eigen::VectorXi& a, const Eigen::VectorXi& b) const
+    {
+        assert(a.size()==b.size());
+        for(Eigen::VectorXi::Index i=0;i<a.size();++i)
+        {
+            if(a[i]<b[i]) return true;
+            if(a[i]>b[i]) return false;
+        }
+        return false;
+    }
+};
+
+static std::string toString(const Eigen::MatrixXd& mat){
     std::stringstream ss;
     ss << mat;
     return ss.str();
 }
 
 template<typename Func, typename... Ts>
-Eigen::VectorXf minimize_discrete_stepwise_cpp(Func fun, Eigen::VectorXf x, 
-    std::map<Eigen::VectorXf,float,EigenVectorXfCompare>& results_cache, 
-    Eigen::VectorXf dx, int search_range = 1, int maxiter = 10000, Ts&& ...args)
+Eigen::VectorXd minimize_discrete_stepwise_cpp(Func fun, Eigen::VectorXd x, 
+    std::map<Eigen::VectorXd,double,EigenVectorXdCompare>& results_cache, 
+    Eigen::VectorXd dx, int search_range = 1, int maxiter = 10000, Ts&& ...args)
 {
     /*Minimizes a discrete function by nearest neighbour descent.
 
@@ -65,8 +79,8 @@ Eigen::VectorXf minimize_discrete_stepwise_cpp(Func fun, Eigen::VectorXf x,
     // Parse parameters
     if (x.size() == 1 && dx.size() > 0)
     {
-        float val = x[0];
-        x = Eigen::VectorXf(dx.size());
+        double val = x[0];
+        x = Eigen::VectorXd(dx.size());
         for(int i = 0; i < dx.size(); i++)
         {
             x[i] = val;
@@ -74,8 +88,8 @@ Eigen::VectorXf minimize_discrete_stepwise_cpp(Func fun, Eigen::VectorXf x,
     }
     else if (dx.size() == 1 && x.size() > 0)
     {
-        float val = dx[0];
-        dx = Eigen::VectorXf(x.size());
+        double val = dx[0];
+        dx = Eigen::VectorXd(x.size());
         for(int i = 0; i < x.size(); i++)
         {
             dx[i] = val;
@@ -83,7 +97,7 @@ Eigen::VectorXf minimize_discrete_stepwise_cpp(Func fun, Eigen::VectorXf x,
     }
     // Initialize optimization variables
     size_t sizeMg = std::pow(2 * search_range + 1, dx.size());
-    Eigen::MatrixXf dxArMg(sizeMg, dx.size());
+    Eigen::MatrixXd dxArMg(sizeMg, dx.size());
     std::vector<int> ranges;
     for(int j = 0; j < dx.size(); j++)
     {
@@ -102,14 +116,14 @@ Eigen::VectorXf minimize_discrete_stepwise_cpp(Func fun, Eigen::VectorXf x,
     for(int i = 0; i < maxiter; i++)
     {
         // Get result for each step direction
-        std::vector<float> resMg(sizeMg, NAN);
-        Eigen::MatrixXf xMg = dxArMg.rowwise() + x.transpose();     // [nsteps, ndim]
-        float resMin = __FLT_MAX__;
+        std::vector<double> resMg(sizeMg, NAN);
+        Eigen::MatrixXd xMg = dxArMg.rowwise() + x.transpose();     // [nsteps, ndim]
+        double resMin = __FLT_MAX__;
         int idxMin = -1;
         for(size_t idx = 0; idx < sizeMg; idx++)
         {
-            Eigen::VectorXf key = xMg.row(idx);
-            float result = 0;
+            Eigen::VectorXd key = xMg.row(idx);
+            double result = 0;
             if(results_cache.count(key) == 0)
             {
                 result = fun(key, args...);
@@ -142,11 +156,11 @@ Eigen::VectorXf minimize_discrete_stepwise_cpp(Func fun, Eigen::VectorXf x,
 }
 
 template<typename Func, typename... Ts>
-Eigen::VectorXf maximize_discrete_stepwise_cpp(Func fun, Eigen::VectorXf x, 
-    std::map<Eigen::VectorXf,float,EigenVectorXfCompare>& results_cache, 
-    Eigen::VectorXf dx, int search_range = 1, int maxiter = 10000, Ts&& ...args)
+Eigen::VectorXd maximize_discrete_stepwise_cpp(Func fun, Eigen::VectorXd x, 
+    std::map<Eigen::VectorXd,double,EigenVectorXdCompare>& results_cache, 
+    Eigen::VectorXd dx, int search_range = 1, int maxiter = 10000, Ts&& ...args)
 {
-    return minimize_discrete_stepwise_cpp([&fun](Eigen::VectorXf a, Ts... args)
+    return minimize_discrete_stepwise_cpp([&fun](Eigen::VectorXd a, Ts... args)
     {
         return -fun(a, args...);
     }, x, results_cache, dx, search_range, maxiter, args...);

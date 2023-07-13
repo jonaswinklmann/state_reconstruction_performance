@@ -1,20 +1,10 @@
 #include "proj_est.hpp"
 
-#include <fstream>
 #include <pybind11/numpy.h>
 
 // Projector application
 
-void sliceLocalImages(const Eigen::Array<double,-1,-1,Eigen::RowMajor>& fullImage, std::vector<Image>& images)
-{
-    for(Image& image : images)
-    {
-        image.image = fullImage(Eigen::seq(image.X_min,image.X_max), Eigen::seq(image.Y_min,image.Y_max));
-    }
-}
-
-
-std::vector<Image> getLocalImages(std::vector<Eigen::Vector2f> coords, const Eigen::Array<double,-1,-1,Eigen::RowMajor>& image, Eigen::Array2i shape, int psf_supersample)
+std::vector<Image> getLocalImages(std::vector<Eigen::Vector2d> coords, const Eigen::Array<double,-1,-1,Eigen::RowMajor>& fullImage, Eigen::Array2i shape, int psf_supersample)
 {
     /*Extracts image subregions and subpixel shifts.
 
@@ -44,24 +34,34 @@ std::vector<Image> getLocalImages(std::vector<Eigen::Vector2f> coords, const Eig
         Subpixel shifts.*/
 
     std::vector<Image> localImages;
-    for(Eigen::Vector2f& coord : coords)
+    for(Eigen::Vector2d& coord : coords)
     {
-        Image imageN;
-        imageN.X_int = std::round(coord[0]);
-        imageN.Y_int = std::round(coord[1]);
-        imageN.dx = std::round((coord[0] - imageN.X_int) * psf_supersample);
-        imageN.dy = std::round((coord[1] - imageN.Y_int) * psf_supersample);
-        imageN.X_min = imageN.X_int - shape[0] / 2;
-        imageN.Y_min = imageN.Y_int - shape[1] / 2;
-        imageN.X_max = imageN.X_min + shape[0] - 1;
-        imageN.Y_max = imageN.Y_min + shape[1] - 1;
+        int x_int = std::round(coord[0]);
+        int y_int = std::round(coord[1]);
+        int x_min = x_int - shape[0] / 2;
+        int y_min = y_int - shape[1] / 2;
+        int x_max = x_min + shape[0] - 1;
+        int y_max = y_min + shape[1] - 1;
+        Image imageN
+        {
+            .image = Eigen::Map<const Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>, 
+                0, StrideDyn>(fullImage.data() + x_min * fullImage.cols() + y_min, 
+                x_max - x_min + 1, y_max - y_min + 1, StrideDyn(fullImage.cols(), 1)),
+            .X_int = x_int,
+            .Y_int = y_int,
+            .X_min = x_min,
+            .X_max = x_max,
+            .Y_min = y_min,
+            .Y_max = y_max,
+            .dx = (int)(std::round((coord[0] - x_int) * psf_supersample)),
+            .dy = (int)(std::round((coord[1] - y_int) * psf_supersample))
+        };
         localImages.push_back(imageN);
     }
-    sliceLocalImages(image, localImages);
     return localImages;
 }
 
-std::vector<float> apply_projectors(std::vector<Image> localImages, py::object& projector_generator)
+std::vector<double> apply_projectors(std::vector<Image> localImages, py::object& projector_generator)
 {
     /*Applies subpixel-shifted projectors to subregion images.
 
@@ -77,28 +77,58 @@ std::vector<float> apply_projectors(std::vector<Image> localImages, py::object& 
     emissions : `np.ndarray(1, float)`
         Projected results. Dimensions: `[n_subregions]`.*/
 
-    std::vector<float> emissions;
+    std::vector<double> emissions;
     bool projCacheBuilt = projector_generator.attr("proj_cache_built").cast<bool>();
     if(!projCacheBuilt)
     {
         projector_generator.attr("setup_cache")();
     }
     int psfSupersample = projector_generator.attr("psf_supersample").cast<int>();
+
+    py::array_t<double> projs = projector_generator.attr("proj_cache").cast<py::array_t<double>>();
+    const ssize_t *shape = projs.shape();
+    projs = projs.reshape(std::vector<int>({(int)(shape[0]), (int)(shape[1]), -1}));
+
     for(Image& localImage : localImages)
     {
-        Eigen::VectorXd imagedata(Eigen::Map<Eigen::VectorXd>(localImage.image.data(), localImage.image.size()));
-        py::array_t<double> projs = projector_generator.attr("proj_cache").cast<py::array_t<double>>();
-        const ssize_t *shape = projs.shape();
-        projs = projs.reshape(std::vector<int>({(int)(shape[0]), (int)(shape[1]), -1}));
         int xidx = localImage.dx % psfSupersample;
         int yidx = localImage.dy % psfSupersample;
 
         py::array imageProj = projs[py::make_tuple(xidx, yidx, py::ellipsis())];
         py::buffer_info info = imageProj.request();
         double *ptr = static_cast<double*>(info.ptr);
-        Eigen::VectorXd projEigen = Eigen::Map<Eigen::VectorXd>(ptr, imageProj.size());
 
-        emissions.push_back(imagedata.dot(projEigen));
+        double sum = 0;
+        for(int i = 0; i < localImage.image.size(); i++)
+        {
+            sum += *(localImage.image.data() + (i / localImage.image.cols()) * 
+                localImage.image.outerStride() + i % localImage.image.cols()) * ptr[i];
+        }
+        
+        emissions.push_back(sum);
     }
     return emissions;
+}
+
+std::vector<double> apply_projectors_gpu(std::vector<Image> localImages, py::object& projector_generator)
+{
+    std::vector<double> emissions;
+    bool projCacheBuilt = projector_generator.attr("proj_cache_built").cast<bool>();
+    if(!projCacheBuilt)
+    {
+        projector_generator.attr("setup_cache")();
+    }
+    int psfSupersample = projector_generator.attr("psf_supersample").cast<int>();
+
+    py::array_t<double> projs = projector_generator.attr("proj_cache").cast<py::array_t<double>>();
+    const ssize_t *shape = projs.shape();
+    projs = projs.reshape(std::vector<int>({(int)(shape[0]), (int)(shape[1]), -1}));
+    shape = projs.shape();
+    /*for(int i = 0; i < 5; i++)
+    {
+        log << *(projs.data() + (shape[1] + 1) * shape[2] + i);
+    }
+
+    cl::EnqueueArgs eArgs()
+    calcEmissions()*/
 }

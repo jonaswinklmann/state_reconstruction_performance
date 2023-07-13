@@ -6,7 +6,7 @@ Assigns emission states to projections.
 
 import sys
 import os
-sys.path.insert(0, os.path.dirname(__file__) + "/../lib/")
+sys.path.insert(0, os.path.dirname(__file__) + "/../")
 import state_reconstruction_cpp
 from datetime import datetime
 
@@ -961,34 +961,14 @@ class StateEstimator:
             new_trafo = self.get_phase_shifted_trafo(
                 image=image, preprocess_image=False
             )
-        trafo_phase, _ = trafo_gen.get_phase_from_trafo_site_to_image(
-            new_trafo, phase_ref_image=self.phase_ref_image
-        )
+        trafo_phase = state_reconstruction_cpp.get_phase_from_trafo_site_to_image_py(new_trafo, self.phase_ref_image)
+        print(trafo_phase)
         t = datetime.now() - start_time
         print("After find trafo phase: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Construct local images
         emissions = ArrayData(np.zeros(self.sites_shape, dtype=float))
-        emissions_coord = emissions.get_var_meshgrid()
-        image_rect = np.array([
-            [0+self.proj_shape[i], image.shape[i]-self.proj_shape[i]-1]
-            for i in range(len(self.proj_shape))
-        ])
-        emissions_mask = new_trafo.get_mask_origin_coords_within_target_rect(
-            np.moveaxis(emissions_coord, 0, -1), rect=image_rect
-        )
-        rec_coord_sites = emissions_coord[:, emissions_mask]
-        rec_coord_image = new_trafo.coord_to_target(rec_coord_sites.T).T
-        local_images = get_local_images(
-            *rec_coord_image, image, self.proj_shape,
-            psf_supersample=self.psf_supersample
-        )
-        t = datetime.now() - start_time
-        print("After constructing local images: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
-        # Apply projectors and embed local images
-        local_emissions = apply_projectors(
-            local_images, self.projector_generator
-        )
-        emissions.data[emissions_mask] = local_emissions
+        sest = state_reconstruction_cpp.StateEstimator()
+        local_emissions = sest.constructLocalImagesAndApplyProjectors(image, self.sites_shape, new_trafo, self.proj_shape, self.psf_supersample, self.projector_generator, emissions.data)
         t = datetime.now() - start_time
         print("After applying projectors: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Perform histogram analysis for state discrimination

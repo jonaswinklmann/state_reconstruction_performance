@@ -4,7 +4,12 @@
 
 #include "linear.hpp"
 
-Eigen::VectorXf get_phase_from_trafo_site_to_image(AffineTrafo2D trafo_site_to_image, std::optional<Eigen::VectorXf> phase_ref_image)
+Eigen::VectorXd get_phase_from_trafo_site_to_image_py(py::object &trafoPy, std::optional<Eigen::VectorXd> phase_ref_image)
+{
+    return get_phase_from_trafo_site_to_image(AffineTrafo2D(trafoPy), phase_ref_image);
+}
+
+Eigen::VectorXd get_phase_from_trafo_site_to_image(AffineTrafo2D trafo_site_to_image, std::optional<Eigen::VectorXd> phase_ref_image)
 {
     /*Gets the lattice phase and ref. integer site in `librbl` convention.
 
@@ -27,10 +32,10 @@ Eigen::VectorXf get_phase_from_trafo_site_to_image(AffineTrafo2D trafo_site_to_i
         //phase_ref_image = TrafoManager.get_phase_ref_image()
         throw std::logic_error("Calling without phase_ref_image not implemented yet");
     }
-    Eigen::VectorXf site_float = trafo_site_to_image.coord_to_origin(phase_ref_image.value());
-    Eigen::ArrayXf phaseArray = site_float.array() + 0.5;
+    Eigen::VectorXd site_float = trafo_site_to_image.coord_to_origin(phase_ref_image.value());
+    Eigen::ArrayXd phaseArray = site_float.array() + 0.5;
     //phaseArray = phaseArray.unaryExpr([](const float x) { return fmod(x, 1) - 0.5; });
-    phaseArray -= phaseArray.cast<int>().cast<float>();
+    phaseArray -= phaseArray.cast<int>().cast<double>();
     phaseArray -= 0.5;
     return phaseArray.matrix();
 }

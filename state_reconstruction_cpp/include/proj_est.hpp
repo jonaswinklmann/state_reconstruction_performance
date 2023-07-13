@@ -4,9 +4,11 @@
 
 namespace py = pybind11;
 
+typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> StrideDyn;
+
 struct Image
 {
-    Eigen::Array<double, -1, -1, Eigen::RowMajor> image;
+    Eigen::Map<const Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>,0,StrideDyn> image;
     // Rounded PSF center coordinates.
     int X_int, Y_int;
     // Rounded PSF rectangle corners.
@@ -15,6 +17,7 @@ struct Image
     int dx, dy;
 };
 
-std::vector<Image> getLocalImages(std::vector<Eigen::Vector2f> coords, 
-    const Eigen::Array<double,-1,-1,Eigen::RowMajor>& image, Eigen::Array2i shape, int psf_supersample=5);
-std::vector<float> apply_projectors(std::vector<Image> localImages, py::object& projector_generator);
+std::vector<Image> getLocalImages(std::vector<Eigen::Vector2d> coords, 
+    const Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>& fullImage, Eigen::Array2i shape, int psf_supersample=5);
+std::vector<double> apply_projectors(std::vector<Image> localImages, py::object& projector_generator);
+std::vector<double> apply_projectors_gpu(std::vector<Image> localImages, py::object& projector_generator);

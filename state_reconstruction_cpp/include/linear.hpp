@@ -1,5 +1,7 @@
 #include <Eigen/Dense>
 #include <pybind11/pybind11.h>
+#include <vector>
+#include <tuple>
 
 namespace py = pybind11;
 
@@ -14,32 +16,32 @@ class AffineTrafo
     offset : `np.ndarray(1, float)`
         Transformation offset.*/
 public:
-    Eigen::MatrixXf matrix;
-    Eigen::VectorXf offset;
+    Eigen::MatrixXd matrix;
+    Eigen::VectorXd offset;
     AffineTrafo() : 
-        matrix(Eigen::Matrix2f()), offset(Eigen::Vector2f())
+        matrix(Eigen::Matrix2d()), offset(Eigen::Vector2d())
     {
         this->matrix << 1,0,0,1;
         this->offset << 0,0;
     };
     AffineTrafo(py::object& trafo);
-    AffineTrafo(Eigen::MatrixXf matrix) : 
-        matrix(matrix), offset(Eigen::Vector2f())
+    AffineTrafo(Eigen::MatrixXd matrix) : 
+        matrix(matrix), offset(Eigen::Vector2d())
     {
         this->offset << 0,0;
     };
-    AffineTrafo(Eigen::MatrixXf matrix, Eigen::VectorXf offset) : 
+    AffineTrafo(Eigen::MatrixXd matrix, Eigen::VectorXd offset) : 
         matrix(matrix), offset(offset)
     {};
     AffineTrafo copy() const;
-    Eigen::MatrixXf matrix_to_target() const;
-    Eigen::MatrixXf matrix_to_origin() const;
-    Eigen::VectorXf offset_to_target() const;
-    Eigen::VectorXf offset_to_origin() const;
+    Eigen::MatrixXd matrix_to_target() const;
+    Eigen::MatrixXd matrix_to_origin() const;
+    Eigen::VectorXd offset_to_target() const;
+    Eigen::VectorXd offset_to_origin() const;
     unsigned int ndim() const;
-    void set_offset_by_point_pair(Eigen::VectorXf origin_point, Eigen::VectorXf target_point);
-    Eigen::VectorXf coord_to_origin(Eigen::VectorXf target_coords);
-    Eigen::VectorXf coord_to_target(Eigen::VectorXf origin_coords);
+    void set_offset_by_point_pair(Eigen::VectorXd origin_point, Eigen::VectorXd target_point);
+    Eigen::VectorXd coord_to_origin(Eigen::VectorXd target_coords);
+    Eigen::VectorXd coord_to_target(Eigen::VectorXd origin_coords);
 };
 
 class AffineTrafo2D : public AffineTrafo
@@ -61,13 +63,14 @@ public:
     AffineTrafo2D(py::object& trafo) : 
         AffineTrafo(trafo)
     {};
-    AffineTrafo2D(Eigen::MatrixXf matrix) : 
+    AffineTrafo2D(Eigen::MatrixXd matrix) : 
         AffineTrafo(matrix)
     {};
-    AffineTrafo2D(Eigen::MatrixXf matrix, Eigen::VectorXf offset) : 
+    AffineTrafo2D(Eigen::MatrixXd matrix, Eigen::VectorXd offset) : 
         AffineTrafo(matrix, offset)
     {};
-    Eigen::Array2f getMagnification();
-    Eigen::Array2f getAngle();
-    Eigen::Array2f getOffset();
+    Eigen::Array2d getMagnification();
+    Eigen::Array2d getAngle();
+    Eigen::Array2d getOffset();
+    std::tuple<std::vector<Eigen::Vector2d>, std::vector<Eigen::Vector2i>> filter_origin_coords_within_target_rect(const std::vector<Eigen::Vector2i>& coords, std::vector<Eigen::Array2i> rect);
 };
