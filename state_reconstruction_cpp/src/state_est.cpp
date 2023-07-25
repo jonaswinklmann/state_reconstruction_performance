@@ -36,7 +36,11 @@ std::vector<double> StateEstimator::constructLocalImagesAndApplyProjectors(
     auto localImages = getLocalImages(emissionCoords, image, projShape, psfSupersample);
 
     // Apply projectors and embed local images
+#ifdef CUDA
+    auto localEmissions = apply_projectors_gpu(image, localImages, projector_generator);
+#else
     auto localEmissions = apply_projectors(localImages, projector_generator);
+#endif
     for(size_t i = 0; i < localEmissions.size(); i++)
     {
         emissions(originCoords[i][0], originCoords[i][1]) = localEmissions[i];

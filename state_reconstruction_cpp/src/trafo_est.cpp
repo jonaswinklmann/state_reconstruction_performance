@@ -65,7 +65,11 @@ double get_subimage_emission_std(Eigen::VectorXd shift, Eigen::Array2i subimage_
     // tmp_prjgen.trafo_site_to_image = _trafo
     auto localImages = getLocalImages(subimageCoords, full_image, projShape, psfSupersample);
     // Perform projection
+#ifdef CUDA
+    auto emissions = apply_projectors_gpu(full_image, localImages, prjgen);
+#else
     auto emissions = apply_projectors(localImages, prjgen);
+#endif
     Eigen::ArrayXd emissionsEigen(Eigen::Map<Eigen::ArrayXd>(emissions.data(), emissions.size()));
     return std::sqrt((emissionsEigen - emissionsEigen.mean()).square().sum() / (emissionsEigen.size()));
 }

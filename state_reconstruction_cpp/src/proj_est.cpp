@@ -2,9 +2,12 @@
 
 #include <pybind11/numpy.h>
 
+#include "calcEmissions.hpp"
+
 // Projector application
 
-std::vector<Image> getLocalImages(std::vector<Eigen::Vector2d> coords, const Eigen::Array<double,-1,-1,Eigen::RowMajor>& fullImage, Eigen::Array2i shape, int psf_supersample)
+std::vector<Image> getLocalImages(std::vector<Eigen::Vector2d> coords, 
+    const Eigen::Array<double,-1,-1,Eigen::RowMajor>& fullImage, Eigen::Array2i shape, int psf_supersample)
 {
     /*Extracts image subregions and subpixel shifts.
 
@@ -44,9 +47,10 @@ std::vector<Image> getLocalImages(std::vector<Eigen::Vector2d> coords, const Eig
         int y_max = y_min + shape[1] - 1;
         Image imageN
         {
-            .image = Eigen::Map<const Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>, 
-                0, StrideDyn>(fullImage.data() + x_min * fullImage.cols() + y_min, 
-                x_max - x_min + 1, y_max - y_min + 1, StrideDyn(fullImage.cols(), 1)),
+            .image = fullImage.data(),
+            .offset = (size_t)(x_min * fullImage.cols() + y_min),
+            .outerStride = (size_t)(fullImage.cols()),
+            .innerStride = 1,
             .X_int = x_int,
             .Y_int = y_int,
             .X_min = x_min,
@@ -61,7 +65,7 @@ std::vector<Image> getLocalImages(std::vector<Eigen::Vector2d> coords, const Eig
     return localImages;
 }
 
-std::vector<double> apply_projectors(std::vector<Image> localImages, py::object& projector_generator)
+std::vector<double> apply_projectors(std::vector<Image>& localImages, py::object& projector_generator)
 {
     /*Applies subpixel-shifted projectors to subregion images.
 
@@ -99,10 +103,12 @@ std::vector<double> apply_projectors(std::vector<Image> localImages, py::object&
         double *ptr = static_cast<double*>(info.ptr);
 
         double sum = 0;
-        for(int i = 0; i < localImage.image.size(); i++)
+        int cols = localImage.X_max - localImage.X_min + 1;
+        int pixelCount = cols * (localImage.Y_max - localImage.Y_min + 1);
+        for(int i = 0; i < pixelCount; i++)
         {
-            sum += *(localImage.image.data() + (i / localImage.image.cols()) * 
-                localImage.image.outerStride() + i % localImage.image.cols()) * ptr[i];
+            sum += localImage.image[localImage.offset + (i / cols) * 
+                localImage.outerStride + i % cols] * ptr[i];
         }
         
         emissions.push_back(sum);
@@ -110,7 +116,9 @@ std::vector<double> apply_projectors(std::vector<Image> localImages, py::object&
     return emissions;
 }
 
-std::vector<double> apply_projectors_gpu(std::vector<Image> localImages, py::object& projector_generator)
+#ifdef CUDA
+std::vector<double> apply_projectors_gpu(const Eigen::Array<double,-1,-1,Eigen::RowMajor>& fullImage, 
+    std::vector<Image>& localImages, py::object& projector_generator)
 {
     std::vector<double> emissions;
     bool projCacheBuilt = projector_generator.attr("proj_cache_built").cast<bool>();
@@ -124,11 +132,7 @@ std::vector<double> apply_projectors_gpu(std::vector<Image> localImages, py::obj
     const ssize_t *shape = projs.shape();
     projs = projs.reshape(std::vector<int>({(int)(shape[0]), (int)(shape[1]), -1}));
     shape = projs.shape();
-    /*for(int i = 0; i < 5; i++)
-    {
-        log << *(projs.data() + (shape[1] + 1) * shape[2] + i);
-    }
-
-    cl::EnqueueArgs eArgs()
-    calcEmissions()*/
+    
+    return calcEmissionsGPU(fullImage.data(), fullImage.rows(), fullImage.cols(), projs.data(), projs.size(), shape, localImages, psfSupersample);
 }
+#endif
