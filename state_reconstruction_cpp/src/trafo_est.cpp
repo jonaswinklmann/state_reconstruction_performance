@@ -11,6 +11,7 @@
 #include "proj_est.hpp"
 #include "trafo_est.hpp"
 #include "trafo_gen.hpp"
+#include "calcEmissions.hpp"
 
 AffineTrafo2D get_shifted_subimage_trafo(AffineTrafo2D trafo, Eigen::VectorXd shift, 
     Eigen::VectorXd subimage_center, std::optional<Eigen::VectorXd> site = std::nullopt)
@@ -66,7 +67,7 @@ double get_subimage_emission_std(Eigen::VectorXd shift, Eigen::Array2i subimage_
     auto localImages = getLocalImages(subimageCoords, full_image, projShape, psfSupersample);
     // Perform projection
 #ifdef CUDA
-    auto emissions = apply_projectors_gpu(full_image, localImages, prjgen);
+    auto emissions = EmissionCalculatorCUDA::getInstance().calcEmissionsGPU(localImages, psfSupersample);
 #else
     auto emissions = apply_projectors(localImages, prjgen);
 #endif
@@ -150,6 +151,14 @@ Eigen::VectorXd TrafoEstimator::get_trafo_phase_from_projections(const py::Eigen
     Eigen::Array<double,-1,-1,Eigen::RowMajor> imCrop = imRoi(Eigen::seqN(0, cropShape[0]), Eigen::seqN(0, cropShape[1]));
     Eigen::Array2i gridShape = cropShape / subimageShapeEigen;
 
+    // If GPU used, init environment and load data
+#ifdef CUDA
+    EmissionCalculatorCUDA& emissionCalcGPU = EmissionCalculatorCUDA::getInstance();
+    emissionCalcGPU.initGPUEnvironment();
+    emissionCalcGPU.loadImage(im.data(), im.cols(), im.rows());
+    //emissionCalcGPU.loadProj(prjgen);
+#endif
+
     // Get subimage with maximum signal variance as proxy for mixed filling
     int iMax = -1;
     int jMax = -1;
@@ -181,16 +190,24 @@ Eigen::VectorXd TrafoEstimator::get_trafo_phase_from_projections(const py::Eigen
     initShift << 0,0;
     Eigen::VectorXd dx(1);
     dx << 1;
+
+#ifdef CUDA
+    int imageCount = ((int)((subsiteShapeEigen[0] + 1) / 2) * 2 + 1) * ((int)((subsiteShapeEigen[1] + 1) / 2) * 2 + 1);
+    emissionCalcGPU.allocatePerImageBuffers(imageCount);
+#endif
+
     // Maximize on integer pixels
     std::map<Eigen::VectorXd,double,EigenVectorXdCompare> resultsCache = std::map<Eigen::VectorXd,double,EigenVectorXdCompare>();
     Eigen::VectorXi optShiftInt = maximize_discrete_stepwise_cpp(get_subimage_emission_std, initShift, 
         resultsCache, dx, search_range, 10000, subimageCenter, im, prjgen, subsiteShapeEigen).cast<int>();
+
     // Maximize on subpixels
     double psfSuperSample = prjgen.attr("psf_supersample").cast<double>();
     dx = Eigen::VectorXd(1);
     dx << 1. / psfSuperSample;
     Eigen::VectorXd optShiftFloat = maximize_discrete_stepwise_cpp(get_subimage_emission_std, optShiftInt.cast<double>(),
         resultsCache, dx, (int)(ceil(search_range * psfSuperSample / 2)), 10000, subimageCenter, im, prjgen, subsiteShapeEigen);
+        
     // Calculate phase
     py::object trafo = prjgen.attr("trafo_site_to_image");
     AffineTrafo2D optTrafo = get_shifted_subimage_trafo(AffineTrafo2D(trafo), optShiftFloat, subimageCenter.cast<double>(), phaseRefSiteEigen.cast<double>());

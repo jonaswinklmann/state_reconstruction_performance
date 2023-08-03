@@ -20,5 +20,7 @@ PYBIND11_MODULE(state_reconstruction_cpp, m) {
     py::class_<StateEstimator>(m, "StateEstimator")
         .def(py::init<>())
         .def("constructLocalImagesAndApplyProjectors", &StateEstimator::constructLocalImagesAndApplyProjectors, py::arg("image"), 
-            py::arg("sitesShape"), py::arg("trafoPy"), py::arg("projShape"), py::arg("psfSupersample"), py::arg("projector_generator"), py::arg("emissions"));
+            py::arg("sitesShape"), py::arg("trafoPy"), py::arg("projShape"), py::arg("psfSupersample"), py::arg("projector_generator"), py::arg("emissions"))
+        .def("init", &StateEstimator::init)
+        .def("loadProj", &StateEstimator::loadProj, py::arg("prjgen"));
 }

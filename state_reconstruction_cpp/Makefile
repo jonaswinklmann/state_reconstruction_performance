@@ -1,6 +1,6 @@
 CC=c++
 INCLUDE=-I../extern/pybind11/include -Iinclude -I../extern/eigen $(shell python3-config --includes)
-CXXFLAGS=-O3 -Wall -shared -std=c++17 -fPIC -lcudart $(INCLUDE)
+CXXFLAGS=-O3 -Wall -shared -std=c++17 -fPIC -lcudart $(INCLUDE) -L/usr/local/cuda/lib64
 PLATFORM:=$(word 2,$(MAKECMDGOALS))
 
 TARGET_DIR=../state_reconstruction/
@@ -36,7 +36,7 @@ else
 endif
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cu | $(OBJ_DIR)
 ifeq ($(PLATFORM),gpu)
-	nvcc -ccbin $(CC) -c $< -o $@ -Xcompiler "$(CXXFLAGS)"
+	nvcc -ccbin $(CC) -c $< -o $@ -Xcompiler "$(CXXFLAGS)" -arch sm_50
 endif
 $(BIN_DIR) $(OBJ_DIR) $(TARGET_DIR):
 	mkdir -p $@

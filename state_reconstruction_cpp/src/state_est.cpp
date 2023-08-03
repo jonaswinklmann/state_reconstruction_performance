@@ -4,6 +4,7 @@
 #include <optional>
 #include <fstream>
 
+#include "calcEmissions.hpp"
 #include "linear.hpp"
 #include "proj_est.hpp"
 #include "trafo_est.hpp"
@@ -37,7 +38,9 @@ std::vector<double> StateEstimator::constructLocalImagesAndApplyProjectors(
 
     // Apply projectors and embed local images
 #ifdef CUDA
-    auto localEmissions = apply_projectors_gpu(image, localImages, projector_generator);
+    EmissionCalculatorCUDA& emissionCalcGPU = EmissionCalculatorCUDA::getInstance();
+    emissionCalcGPU.allocatePerImageBuffers(localImages.size());
+    auto localEmissions = emissionCalcGPU.calcEmissionsGPU(localImages, psfSupersample);
 #else
     auto localEmissions = apply_projectors(localImages, projector_generator);
 #endif
@@ -46,4 +49,18 @@ std::vector<double> StateEstimator::constructLocalImagesAndApplyProjectors(
         emissions(originCoords[i][0], originCoords[i][1]) = localEmissions[i];
     }
     return localEmissions;
+}
+
+void StateEstimator::init()
+{
+#ifdef CUDA
+    EmissionCalculatorCUDA::getInstance().initGPUEnvironment();
+#endif
+}
+
+void StateEstimator::loadProj(py::object& prjgen)
+{
+#ifdef CUDA
+    EmissionCalculatorCUDA::getInstance().loadProj(prjgen);
+#endif
 }

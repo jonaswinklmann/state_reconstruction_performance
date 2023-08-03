@@ -1,41 +1,50 @@
 #include "calcEmissions.hpp"
 
+#include <chrono>
 #include <cuda.h>
-#include <iostream>
+#include <fstream>
+#include <pybind11/numpy.h>
 #include <vector>
 
 #include "data_types.hpp"
 
 #define threadsPerLocalImageDim 8
 
-#define cudaCheck(cmd) {cudaError_t err = cmd; if (err != cudaSuccess) { std::cout << "Failed: Cuda error " << __FILE__ << ":" << __LINE__ << " '" << cudaGetErrorString(err) << "'\n"; exit(EXIT_FAILURE);}}
+#define cudaCheck(cmd) {cudaError_t err = cmd; if (err != cudaSuccess) { \
+    std::fstream log; \
+    log.open("error.log", std::fstream::in | std::fstream::out | std::fstream::app); \
+    log << "Failed: Cuda error " << __FILE__ << ":" << __LINE__ << " '" << cudaGetErrorString(err) << "'\n"; \
+    log.close(); \
+    exit(EXIT_FAILURE);}}
 
-__global__ void calcEmissions(const double *inputImage, int *xMin, int *xMax,
-    int *yMin, int *yMax, int fullWidth, const double *proj, int *projOffset, double *emissions)
+__global__ void calcEmissions(const double *inputImage, int *xMin, int *xDist,
+    int *yMin, int *yDist, int fullWidth, const double *proj, int *projOffset, double *emissions)
 {
-    unsigned int imageIndex = threadIdx.x;
-    unsigned int workerIndex = blockIdx.x;
+    unsigned int imageIndex = blockIdx.x;
+    unsigned int workerIndex = threadIdx.x;
     unsigned int workerIndexX = workerIndex / threadsPerLocalImageDim;
     unsigned int workerIndexY = workerIndex % threadsPerLocalImageDim;
     double sum = 0;
     int xMinT = xMin[imageIndex];
-    int xDist = xMax[imageIndex] - xMinT;
+    int xDistT = xDist[imageIndex];
     int yMinT = yMin[imageIndex];
-    int yDist = yMax[imageIndex] - yMinT;
+    int yDistT = yDist[imageIndex];
 
     // Calculate emissions for sublocal images
-    for(int x = xDist / blockDim.x * workerIndexX; x < xDist / blockDim.x * (workerIndexX + 1); x++)
+    for(int x = xDistT / threadsPerLocalImageDim * workerIndexX + min(xDistT % threadsPerLocalImageDim, workerIndexX); 
+        x < xDistT / threadsPerLocalImageDim * (workerIndexX + 1) + min(xDistT % threadsPerLocalImageDim, workerIndexX + 1); x++)
     {
-        for(int y = yDist / blockDim.x * workerIndexY; y < yDist / blockDim.x * (workerIndexY + 1); y++)
+        for(int y = yDistT / threadsPerLocalImageDim * workerIndexY + min(yDistT % threadsPerLocalImageDim, workerIndexY); 
+            y < yDistT / threadsPerLocalImageDim * (workerIndexY + 1) + min(yDistT % threadsPerLocalImageDim, workerIndexY + 1); y++)
         {
-            sum += inputImage[(xMinT + x) * fullWidth + yMinT + y] * proj[projOffset[imageIndex] + x * yDist + y];
+            sum += inputImage[(xMinT + x) * fullWidth + yMinT + y] * proj[projOffset[imageIndex] + x * yDistT + y];
         }
     }
     emissions[workerIndex * gridDim.x + imageIndex] = sum;
 
     // Sum emissions within local images
     unsigned int otherIndex = (workerIndex + 1) * gridDim.x + imageIndex;
-    for(unsigned int mask = 2; mask <= threadsPerLocalImageDim * threadsPerLocalImageDim; mask <<= 1)
+    for(unsigned int mask = 2; mask <= threadsPerLocalImageDim * threadsPerLocalImageDim; mask *= 2)
     {
         __syncthreads();
         if(workerIndex % mask == 0)
@@ -46,68 +55,137 @@ __global__ void calcEmissions(const double *inputImage, int *xMin, int *xMax,
     }
 }
 
-std::vector<double> calcEmissionsGPU(const double *image, int imageRows, int imageCols, 
-    const double *projIn, int projSize, const ssize_t *projShape, std::vector<Image>& localImages, int psfSupersample)
+EmissionCalculatorCUDA::~EmissionCalculatorCUDA()
 {
-    double *inputImage, *proj;
-    double *emissions;
-    int *xMin, *xMax, *yMin, *yMax, *projOffset;
+    cudaCheck(cudaFree(this->fullImageDevice));
+    cudaCheck(cudaFree(this->projDevice));
+
+    cudaCheck(cudaFree(this->xMin));
+    cudaCheck(cudaFree(this->xDist));
+    cudaCheck(cudaFree(this->yMin));
+    cudaCheck(cudaFree(this->yDist));
+    cudaCheck(cudaFree(this->projOffset));
+    cudaCheck(cudaFree(this->emissions));
+    free(this->xMinHost);
+    free(this->xDistHost);
+    free(this->yMinHost);
+    free(this->yDistHost);
+    free(this->projOffsetHost);
+    free(this->emissionsHost);
+}
+
+void EmissionCalculatorCUDA::initGPUEnvironment()
+{
+   cudaCheck(cudaFree(0));
+}
+
+std::vector<double> EmissionCalculatorCUDA::calcEmissionsGPU(std::vector<Image>& localImages, int psfSupersample)
+{
     size_t imageCount = localImages.size();
 
-    double *emissionsHost = static_cast<double*>(malloc(sizeof(double) * imageCount));
-    int *xMinHost = static_cast<int*>(malloc(sizeof(int) * imageCount));
-    int *xMaxHost = static_cast<int*>(malloc(sizeof(int) * imageCount));
-    int *yMinHost = static_cast<int*>(malloc(sizeof(int) * imageCount));
-    int *yMaxHost = static_cast<int*>(malloc(sizeof(int) * imageCount));
-    int *projOffsetHost = static_cast<int*>(malloc(sizeof(int) * imageCount));
-    for(size_t i = 0; i < imageCount; i++)
+    if(!this->emissionsHost)
     {
-        int xidx = localImages[i].dx % psfSupersample;
-        int yidx = localImages[i].dy % psfSupersample;
-
-        projOffsetHost[i] = (xidx * (int)(projShape[1]) + yidx) * (int)(projShape[2]);
-        xMinHost[i] = localImages[i].X_min;
-        xMaxHost[i] = localImages[i].X_max;
-        yMinHost[i] = localImages[i].Y_min;
-        yMaxHost[i] = localImages[i].Y_max;
+        this->allocatePerImageBuffers((int)imageCount);
     }
 
-    // Initialize CUDA
+    for(size_t i = 0; i < imageCount; i++)
+    {
+        int xidx = (localImages[i].dx + psfSupersample) % psfSupersample;
+        int yidx = (localImages[i].dy + psfSupersample) % psfSupersample;
+
+        this->projOffsetHost[i] = (xidx * (int)(this->projShape[1]) + yidx) * (int)(this->projShape[2]);
+        this->xMinHost[i] = localImages[i].X_min;
+        this->xDistHost[i] = localImages[i].X_max - localImages[i].X_min + 1;
+        this->yMinHost[i] = localImages[i].Y_min;
+        this->yDistHost[i] = localImages[i].Y_max - localImages[i].Y_min + 1;
+    }
+
+    // Initialize CUDA if not done already
     cudaCheck(cudaFree(0));
 
-    // Allocate device memory for a
-    cudaCheck(cudaMalloc((void**)&inputImage, sizeof(double) * imageRows * imageCols));
-    cudaCheck(cudaMalloc((void**)&proj, sizeof(double) * projSize));
-    cudaCheck(cudaMalloc((void**)&xMin, sizeof(int) * imageCount));
-    cudaCheck(cudaMalloc((void**)&xMax, sizeof(int) * imageCount));
-    cudaCheck(cudaMalloc((void**)&yMin, sizeof(int) * imageCount));
-    cudaCheck(cudaMalloc((void**)&yMax, sizeof(int) * imageCount));
-    cudaCheck(cudaMalloc((void**)&projOffset, sizeof(int) * imageCount));
-    cudaCheck(cudaMalloc((void**)&emissions, sizeof(double) * threadsPerLocalImageDim * threadsPerLocalImageDim * imageCount));
-
     // Transfer data from host to device memory
-    cudaCheck(cudaMemcpy(inputImage, image, sizeof(double) * imageRows * imageCols, cudaMemcpyHostToDevice));
-    cudaCheck(cudaMemcpy(proj, projIn, sizeof(double) * projSize, cudaMemcpyHostToDevice));
-    cudaCheck(cudaMemcpy(xMin, xMinHost, sizeof(int) * imageCount, cudaMemcpyHostToDevice));
-    cudaCheck(cudaMemcpy(xMax, xMaxHost, sizeof(int) * imageCount, cudaMemcpyHostToDevice));
-    cudaCheck(cudaMemcpy(yMin, yMinHost, sizeof(int) * imageCount, cudaMemcpyHostToDevice));
-    cudaCheck(cudaMemcpy(yMax, yMaxHost, sizeof(int) * imageCount, cudaMemcpyHostToDevice));
-    cudaCheck(cudaMemcpy(projOffset, projOffsetHost, sizeof(int) * imageCount, cudaMemcpyHostToDevice));
+    cudaCheck(cudaMemcpy(this->xMin, this->xMinHost, sizeof(int) * imageCount, cudaMemcpyHostToDevice));
+    cudaCheck(cudaMemcpy(this->xDist, this->xDistHost, sizeof(int) * imageCount, cudaMemcpyHostToDevice));
+    cudaCheck(cudaMemcpy(this->yMin, this->yMinHost, sizeof(int) * imageCount, cudaMemcpyHostToDevice));
+    cudaCheck(cudaMemcpy(this->yDist, this->yDistHost, sizeof(int) * imageCount, cudaMemcpyHostToDevice));
+    cudaCheck(cudaMemcpy(this->projOffset, this->projOffsetHost, sizeof(int) * imageCount, cudaMemcpyHostToDevice));
 
-    calcEmissions<<<imageCount, threadsPerLocalImageDim * threadsPerLocalImageDim>>>(inputImage, xMin, xMax, yMin, yMax, imageCols, proj, projOffset, emissions);
+    calcEmissions<<<imageCount, threadsPerLocalImageDim * threadsPerLocalImageDim>>>(
+        this->fullImageDevice, this->xMin, this->xDist, this->yMin, this->yDist, this->imageCols, this->projDevice, this->projOffset, this->emissions);
     cudaCheck(cudaDeviceSynchronize());
 
-    cudaCheck(cudaMemcpy(emissionsHost, emissions, sizeof(double) * imageCount, cudaMemcpyDeviceToHost));
+    cudaCheck(cudaMemcpy(this->emissionsHost, this->emissions, sizeof(double) * imageCount, cudaMemcpyDeviceToHost));
 
-    std::vector<double> emissionsRet(emissionsHost, emissionsHost + imageCount);
-
-    cudaCheck(cudaFree(inputImage));
-    cudaCheck(cudaFree(proj));
-    cudaCheck(cudaFree(xMin));
-    cudaCheck(cudaFree(xMax));
-    cudaCheck(cudaFree(yMin));
-    cudaCheck(cudaFree(yMax));
-    cudaCheck(cudaFree(emissions));
-    free(emissionsHost);
+    std::vector<double> emissionsRet(this->emissionsHost, this->emissionsHost + imageCount);
     return emissionsRet;
+}
+
+void EmissionCalculatorCUDA::loadImage(const double *image, int imageCols, int imageRows)
+{
+    if(this->fullImageDevice)
+    {
+        cudaCheck(cudaFree(this->fullImageDevice));
+    }
+
+    cudaCheck(cudaMalloc((void**)&this->fullImageDevice, sizeof(double) * imageRows * imageCols));
+    cudaCheck(cudaMemcpy(this->fullImageDevice, image, sizeof(double) * imageRows * imageCols, cudaMemcpyHostToDevice));
+
+    this->imageCols = imageCols;
+}
+
+void EmissionCalculatorCUDA::loadProj(py::object& prjgen)
+{
+    bool projCacheBuilt = prjgen.attr("proj_cache_built").cast<bool>();
+    if(!projCacheBuilt)
+    {
+        prjgen.attr("setup_cache")();
+    }
+    py::array_t<double> projs = prjgen.attr("proj_cache").cast<py::array_t<double>>();
+
+    const ssize_t *shape = projs.shape();
+    projs = projs.reshape(std::vector<int>({(int)(shape[0]), (int)(shape[1]), -1}));
+    this->projShape = projs.shape();
+
+    if(this->projDevice)
+    {
+        cudaCheck(cudaFree(this->projDevice));
+    }
+
+    cudaCheck(cudaMalloc((void**)&this->projDevice, sizeof(double) * projs.size()));
+    cudaCheck(cudaMemcpy(this->projDevice, projs.data(), sizeof(double) * projs.size(), cudaMemcpyHostToDevice));
+}
+
+void EmissionCalculatorCUDA::allocatePerImageBuffers(int imageCount)
+{
+    if(this->emissionsHost)
+    {
+        cudaCheck(cudaFree(this->xMin));
+        cudaCheck(cudaFree(this->xDist));
+        cudaCheck(cudaFree(this->yMin));
+        cudaCheck(cudaFree(this->yDist));
+        cudaCheck(cudaFree(this->projOffset));
+        cudaCheck(cudaFree(this->emissions));
+        free(this->xMinHost);
+        free(this->xDistHost);
+        free(this->yMinHost);
+        free(this->yDistHost);
+        free(this->projOffsetHost);
+        free(this->emissionsHost);
+    }
+
+    // Allocate host memory
+    this->emissionsHost = static_cast<double*>(malloc(sizeof(double) * imageCount));
+    this->xMinHost = static_cast<int*>(malloc(sizeof(int) * imageCount));
+    this->xDistHost = static_cast<int*>(malloc(sizeof(int) * imageCount));
+    this->yMinHost = static_cast<int*>(malloc(sizeof(int) * imageCount));
+    this->yDistHost = static_cast<int*>(malloc(sizeof(int) * imageCount));
+    this->projOffsetHost = static_cast<int*>(malloc(sizeof(int) * imageCount));
+
+    // Allocate device memory
+    cudaCheck(cudaMalloc((void**)&this->xMin, sizeof(int) * imageCount));
+    cudaCheck(cudaMalloc((void**)&this->xDist, sizeof(int) * imageCount));
+    cudaCheck(cudaMalloc((void**)&this->yMin, sizeof(int) * imageCount));
+    cudaCheck(cudaMalloc((void**)&this->yDist, sizeof(int) * imageCount));
+    cudaCheck(cudaMalloc((void**)&this->projOffset, sizeof(int) * imageCount));
+    cudaCheck(cudaMalloc((void**)&this->emissions, sizeof(double) * threadsPerLocalImageDim * threadsPerLocalImageDim * imageCount));
 }

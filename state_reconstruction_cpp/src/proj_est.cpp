@@ -115,24 +115,3 @@ std::vector<double> apply_projectors(std::vector<Image>& localImages, py::object
     }
     return emissions;
 }
-
-#ifdef CUDA
-std::vector<double> apply_projectors_gpu(const Eigen::Array<double,-1,-1,Eigen::RowMajor>& fullImage, 
-    std::vector<Image>& localImages, py::object& projector_generator)
-{
-    std::vector<double> emissions;
-    bool projCacheBuilt = projector_generator.attr("proj_cache_built").cast<bool>();
-    if(!projCacheBuilt)
-    {
-        projector_generator.attr("setup_cache")();
-    }
-    int psfSupersample = projector_generator.attr("psf_supersample").cast<int>();
-
-    py::array_t<double> projs = projector_generator.attr("proj_cache").cast<py::array_t<double>>();
-    const ssize_t *shape = projs.shape();
-    projs = projs.reshape(std::vector<int>({(int)(shape[0]), (int)(shape[1]), -1}));
-    shape = projs.shape();
-    
-    return calcEmissionsGPU(fullImage.data(), fullImage.rows(), fullImage.cols(), projs.data(), projs.size(), shape, localImages, psfSupersample);
-}
-#endif

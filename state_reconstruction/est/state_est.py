@@ -718,6 +718,9 @@ class StateEstimator:
         self.isolated_locator = isolated_locator
         self.sites_shape = sites_shape
         self.emission_histogram_analysis = emission_histogram_analysis
+        self.sest_cpp = state_reconstruction_cpp.StateEstimator()
+        self.sest_cpp.init()
+        self.sest_cpp.loadProj(self.projector_generator)
 
     @classmethod
     def discover_configs(cls, config_dir=None):
@@ -967,8 +970,8 @@ class StateEstimator:
         print("After find trafo phase: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Construct local images
         emissions = ArrayData(np.zeros(self.sites_shape, dtype=float))
-        sest = state_reconstruction_cpp.StateEstimator()
-        local_emissions = sest.constructLocalImagesAndApplyProjectors(image, self.sites_shape, new_trafo, self.proj_shape, self.psf_supersample, self.projector_generator, emissions.data)
+        local_emissions = self.sest_cpp.constructLocalImagesAndApplyProjectors(image, self.sites_shape, 
+            new_trafo, self.proj_shape, self.psf_supersample, self.projector_generator, emissions.data)
         t = datetime.now() - start_time
         print("After applying projectors: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Perform histogram analysis for state discrimination

@@ -14,4 +14,6 @@ public:
         const py::EigenDRef<const Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>>& image,
         Eigen::Array2i sitesShape, py::object& trafoPy, Eigen::Array2i projShape, int psfSupersample, py::object& projector_generator,
         py::EigenDRef<Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>>& emissions);
+    void init();
+    void loadProj(py::object& prjgen);
 };
