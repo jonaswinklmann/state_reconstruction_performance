@@ -72,5 +72,12 @@ public:
     Eigen::Array2d getMagnification();
     Eigen::Array2d getAngle();
     Eigen::Array2d getOffset();
-    std::tuple<std::vector<Eigen::Vector2d>, std::vector<Eigen::Vector2i>> filter_origin_coords_within_target_rect(const std::vector<Eigen::Vector2i>& coords, std::vector<Eigen::Array2i> rect);
+    void set_target_axes(std::optional<Eigen::Array2d> magnification,
+        std::optional<Eigen::Array2d> angle, std::optional<Eigen::Array2d> offset);
+    std::tuple<Eigen::Array2d, Eigen::Array2d, Eigen::Array2d> get_target_axes();
+    void set_origin_axes(std::optional<Eigen::Array2d> magnification,
+        std::optional<Eigen::Array2d> angle, std::optional<Eigen::Array2d> offset);
+    std::tuple<Eigen::Array2d, Eigen::Array2d, Eigen::Array2d> get_origin_axes();
+    std::tuple<std::vector<Eigen::Vector2d>, std::vector<Eigen::Vector2i>> filter_origin_coords_within_target_rect(
+        const std::vector<Eigen::Vector2i>& coords, std::vector<Eigen::Array2i> rect);
 };

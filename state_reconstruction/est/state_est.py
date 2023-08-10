@@ -721,6 +721,14 @@ class StateEstimator:
         self.sest_cpp = state_reconstruction_cpp.StateEstimator()
         self.sest_cpp.init()
         self.sest_cpp.loadProj(self.projector_generator)
+        if self.image_preprocessor.scale:
+            self.sest_cpp.setImagePreProcScale(self.image_preprocessor.scale, 
+                self.image_preprocessor.outlier_size, self.image_preprocessor.max_outlier_ratio, 
+                self.image_preprocessor.outlier_min_ref_val, self.image_preprocessor.outlier_iterations)
+        else:
+            self.sest_cpp.setImagePreProc(
+                self.image_preprocessor.outlier_size, self.image_preprocessor.max_outlier_ratio, 
+                self.image_preprocessor.outlier_min_ref_val, self.image_preprocessor.outlier_iterations)
 
     @classmethod
     def discover_configs(cls, config_dir=None):
@@ -952,26 +960,12 @@ class StateEstimator:
         image = np.array(image, dtype=float)
         if np.isfortran(image):
             image = np.ascontiguousarray(image)
-        outlier_ratios = None
-        if self.image_preprocessor:
-            image, outlier_ratios = (
-                self.image_preprocessor.process_image(image)
-            )
-        t = datetime.now() - start_time
-        print("After preprocessing: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
-        # Find trafo phase
-        if new_trafo is None:
-            new_trafo = self.get_phase_shifted_trafo(
-                image=image, preprocess_image=False
-            )
-        trafo_phase = state_reconstruction_cpp.get_phase_from_trafo_site_to_image_py(new_trafo, self.phase_ref_image)
-        print(trafo_phase)
-        t = datetime.now() - start_time
-        print("After find trafo phase: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
-        # Construct local images
         emissions = ArrayData(np.zeros(self.sites_shape, dtype=float))
-        local_emissions = self.sest_cpp.constructLocalImagesAndApplyProjectors(image, self.sites_shape, 
-            new_trafo, self.proj_shape, self.psf_supersample, self.projector_generator, emissions.data)
+        
+        local_emissions, trafo_phase, outlier_ratios, trafo_matrix, trafo_offset = self.sest_cpp.reconstruct(image, None, self.sites_shape, self.proj_shape, 
+            self.psf_supersample, self.projector_generator, self.phase_ref_image, self.phase_ref_site, emissions.data, self.trafo_site_to_image)
+        if new_trafo is None:
+            new_trafo = AffineTrafo2d(np.array(trafo_matrix), np.array(trafo_offset))
         t = datetime.now() - start_time
         print("After applying projectors: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Perform histogram analysis for state discrimination

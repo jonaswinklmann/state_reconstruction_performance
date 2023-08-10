@@ -95,7 +95,7 @@ std::vector<int> getSubsiteShape(py::object& prjgen, Eigen::Array2i& subimageSha
 }
 
 Eigen::VectorXd TrafoEstimator::get_trafo_phase_from_projections(const py::EigenDRef<const Eigen::Array<double,-1,-1,Eigen::RowMajor>>& im, 
-    py::object& prjgen, std::vector<int> phase_ref_image, std::vector<int> phase_ref_site,
+    py::object& prjgen, Eigen::Array2d phase_ref_image, Eigen::Array2d phase_ref_site,
     std::optional<std::vector<int>> subimage_shape, std::optional<std::vector<int>> subsite_shape, int search_range)
 {
     /*Gets the lattice phase by maximizing the emission standard deviation.
@@ -123,8 +123,6 @@ Eigen::VectorXd TrafoEstimator::get_trafo_phase_from_projections(const py::Eigen
         Phase (residual) of lattice w.r.t. to image coordinates (0, 0).*/
 
     // Parse parameters
-    Eigen::Vector2i phaseRefImageEigen(phase_ref_image.data());
-    Eigen::Vector2i phaseRefSiteEigen(phase_ref_site.data());
     if (!subimage_shape.has_value())
     {
         subimage_shape = prjgen.attr("psf_shape").cast<std::vector<int>>();
@@ -210,7 +208,7 @@ Eigen::VectorXd TrafoEstimator::get_trafo_phase_from_projections(const py::Eigen
         
     // Calculate phase
     py::object trafo = prjgen.attr("trafo_site_to_image");
-    AffineTrafo2D optTrafo = get_shifted_subimage_trafo(AffineTrafo2D(trafo), optShiftFloat, subimageCenter.cast<double>(), phaseRefSiteEigen.cast<double>());
-    Eigen::VectorXd phase = get_phase_from_trafo_site_to_image(optTrafo, phaseRefImageEigen.cast<double>());
+    AffineTrafo2D optTrafo = get_shifted_subimage_trafo(AffineTrafo2D(trafo), optShiftFloat, subimageCenter.cast<double>(), phase_ref_site);
+    Eigen::VectorXd phase = get_phase_from_trafo_site_to_image(optTrafo, phase_ref_image);
     return phase;
 }
