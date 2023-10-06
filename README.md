@@ -1,4 +1,6 @@
 # State reconstruction
+Modified version of [David Wei's solution](https://github.com/david-wei/state_reconstruction)
+This README is also adopted and only changed where necessary.
 
 Fluorescence emission state reconstruction from microscopic fluorescence images of atoms on a lattice.
 
@@ -15,9 +17,16 @@ The full documentation can be found [here](https://david-wei.github.io/state_rec
 Clone this repository:
 
 ```
-git clone https://www.github.com/david-wei/state_reconstruction.git
+git clone https://github.com/jonaswinklmann/state_reconstruction_performance.git
 ```
 
+Build the underlying C library depending on the target device:
+
+```
+cd state_reconstruction_performance/state_reconstruction_cpp/
+make all cpu
+cd ../../
+```
 
 Install the library:
 
@@ -25,6 +34,7 @@ Install the library:
 pip install ./state_reconstruction
 ```
 
+There is also a script called compileCppAndInstallPip.sh that combines building of the C library and pip installation.
 
 ## Dependencies
 
