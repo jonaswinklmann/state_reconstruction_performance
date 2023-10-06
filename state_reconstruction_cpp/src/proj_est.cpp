@@ -39,8 +39,8 @@ std::vector<Image> getLocalImages(std::vector<Eigen::Vector2d> coords,
     std::vector<Image> localImages;
     for(Eigen::Vector2d& coord : coords)
     {
-        int x_int = std::round(coord[0]);
-        int y_int = std::round(coord[1]);
+        int x_int = (int)std::round(coord[0]);
+        int y_int = (int)std::round(coord[1]);
         int x_min = x_int - shape[0] / 2;
         int y_min = y_int - shape[1] / 2;
         int x_max = x_min + shape[0] - 1;
@@ -90,7 +90,7 @@ std::vector<double> apply_projectors(std::vector<Image>& localImages, py::object
     int psfSupersample = projector_generator.attr("psf_supersample").cast<int>();
 
     py::array_t<double> projs = projector_generator.attr("proj_cache").cast<py::array_t<double>>();
-    const ssize_t *shape = projs.shape();
+    const pybind11::ssize_t *shape = projs.shape();
     projs = projs.reshape(std::vector<int>({(int)(shape[0]), (int)(shape[1]), -1}));
 
     for(Image& localImage : localImages)

@@ -118,7 +118,7 @@ Eigen::VectorXd minimize_discrete_stepwise_cpp(Func fun, Eigen::VectorXd x,
         // Get result for each step direction
         std::vector<double> resMg(sizeMg, NAN);
         Eigen::MatrixXd xMg = dxArMg.rowwise() + x.transpose();     // [nsteps, ndim]
-        double resMin = __FLT_MAX__;
+        double resMin = DBL_MAX;
         int idxMin = -1;
         for(size_t idx = 0; idx < sizeMg; idx++)
         {

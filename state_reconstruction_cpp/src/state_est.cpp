@@ -72,10 +72,10 @@ std::vector<double> StateEstimator::constructLocalImagesAndApplyProjectors(
     }
     std::vector<Eigen::Array2i> imageRect;
     Eigen::Array2i rect;
-    rect << projShape[0], image.rows() - projShape[0];
+    rect << projShape[0], (int)image.rows() - projShape[0];
     imageRect.push_back(rect);
     rect = Eigen::Array2i();
-    rect << projShape[1], image.cols() - projShape[1];
+    rect << projShape[1], (int)image.cols() - projShape[1];
     imageRect.push_back(rect);
 
     auto [emissionCoords, originCoords] = trafo.filter_origin_coords_within_target_rect(coords, imageRect);

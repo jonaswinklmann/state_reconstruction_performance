@@ -142,7 +142,7 @@ void EmissionCalculatorCUDA::loadProj(py::object& prjgen)
     }
     py::array_t<double> projs = prjgen.attr("proj_cache").cast<py::array_t<double>>();
 
-    const ssize_t *shape = projs.shape();
+    const pybind11::ssize_t *shape = projs.shape();
     projs = projs.reshape(std::vector<int>({(int)(shape[0]), (int)(shape[1]), -1}));
     this->projShape = projs.shape();
 
