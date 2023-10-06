@@ -159,6 +159,9 @@
       <AdditionalLibraryDirectories>C:\Users\jonas\AppData\Local\Programs\Python\Python39\libs;$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
       <AdditionalDependencies>python39.lib;cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy "$(OutDir)state_reconstruction_cpp.cp311-win_amd64.pyd" "..\..\..\state_reconstruction\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -180,6 +183,9 @@
       <AdditionalLibraryDirectories>C:\Users\jonas\AppData\Local\Programs\Python\Python39\libs;$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
       <AdditionalDependencies>python39.lib;cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy "$(OutDir)state_reconstruction_cpp.cp311-win_amd64.pyd" "..\..\..\state_reconstruction\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='GPU|x64'">
     <ClCompile>
@@ -201,6 +207,9 @@
       <AdditionalLibraryDirectories>C:\Users\jonas\AppData\Local\Programs\Python\Python39\libs;$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
       <AdditionalDependencies>python39.lib;cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy "$(OutDir)state_reconstruction_cpp.cp311-win_amd64.pyd" "..\..\..\state_reconstruction\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\bind.cpp" />
