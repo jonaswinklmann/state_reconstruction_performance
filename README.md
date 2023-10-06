@@ -14,27 +14,33 @@ The full documentation can be found [here](https://david-wei.github.io/state_rec
 
 ## Installation
 
-Clone this repository:
+### Clone this repository:
 
 ```
 git clone https://github.com/jonaswinklmann/state_reconstruction_performance.git
 ```
 
-Build the underlying C library depending on the target device:
+### Build the underlying C library depending on the target device:
 
+Linux:
 ```
 cd state_reconstruction_performance/state_reconstruction_cpp/
 make all cpu
 cd ../../
 ```
+Windows:
+1. Open Visual Studio
+2. Open project property pages. Make sure configuration is set to "All Configurations". Adjust "C/C++ -> General -> Additional Include Directories", "Linker -> General -> Output File", "Linker -> General -> Additional Library Directories", and "Linker -> Input -> Additional Dependencies" according to your Python installation".
+3. Build the project by right-clicking on the project and selecting "Build" or "Rebuild".
+4. Make sure the top-level "state_reconstruction" directory contains the resulting ".pyd" file.
 
-Install the library:
+### Install the library:
 
 ```
 pip install ./state_reconstruction
 ```
 
-There is also a script called compileCppAndInstallPip.sh that combines building of the C library and pip installation.
+For Linux, there is also a script called compileCppAndInstallPip.sh that combines building of the C library and pip installation.
 
 ## Dependencies
 
