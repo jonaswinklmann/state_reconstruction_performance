@@ -148,7 +148,7 @@ def get_trafo_site_to_image(
 
 
 def get_phase_from_trafo_site_to_image(
-    trafo_site_to_image, phase_ref_image=None
+    trafo_site_to_image, phase_ref_image=None, phase_ref_site=None
 ):
     """
     Gets the lattice phase and ref. integer site in `librbl` convention.
@@ -157,8 +157,9 @@ def get_phase_from_trafo_site_to_image(
     ----------
     trafo_site_to_image : `AffineTrafo2d`
         Transformation between lattice sites and fluorescence image.
-    phase_ref_fluo : `np.ndarray(1, float)`
-        Fluorescence image coordinate corresponding to integer lattice site.
+    phase_ref_image, phase_ref_site : `np.ndarray(1, float)` or `None`
+        Phase reference (phase = (0, 0)) in fluorescence image
+        and lattice site coordinates.
 
     Returns
     -------
@@ -169,7 +170,9 @@ def get_phase_from_trafo_site_to_image(
     """
     if phase_ref_image is None:
         phase_ref_image = TrafoManager.get_phase_ref_image()
+    if phase_ref_site is None:
+        phase_ref_site = TrafoManager.get_phase_ref_site()
     site_float = trafo_site_to_image.coord_to_origin(phase_ref_image)
-    phase = (site_float + 0.5) % 1 - 0.5
+    phase = (site_float - phase_ref_site + 0.5) % 1 - 0.5
     site = np.round(site_float)
     return phase, site
