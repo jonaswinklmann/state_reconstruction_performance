@@ -28,7 +28,7 @@ AffineTrafo2D get_shifted_subimage_trafo(AffineTrafo2D trafo, Eigen::VectorXd sh
 }
 
 double get_subimage_emission_std(Eigen::VectorXd shift, Eigen::Array2i subimage_center, 
-    const Eigen::Array<double,-1,-1,Eigen::RowMajor>& full_image, py::object& prjgen, Eigen::Array2i subsite_shape = {5, 5})
+    const py::EigenDRef<const Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>& full_image, py::object& prjgen, Eigen::Array2i subsite_shape = {5, 5})
 {
     // Performs projection with given transformation shift and subimage.
     // Parse parameters

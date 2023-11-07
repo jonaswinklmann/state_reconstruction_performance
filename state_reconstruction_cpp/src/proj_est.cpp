@@ -7,7 +7,7 @@
 // Projector application
 
 std::vector<Image> getLocalImages(std::vector<Eigen::Vector2d> coords, 
-    const Eigen::Array<double,-1,-1,Eigen::RowMajor>& fullImage, Eigen::Array2i shape, int psf_supersample)
+    const py::EigenDRef<const Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>& fullImage, Eigen::Array2i shape, int psf_supersample)
 {
     /*Extracts image subregions and subpixel shifts.
 

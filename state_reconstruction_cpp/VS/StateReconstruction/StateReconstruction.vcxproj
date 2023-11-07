@@ -75,9 +75,7 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.props" />
-  </ImportGroup>
+  <ImportGroup Label="ExtensionSettings" />
   <ImportGroup Label="Shared">
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -149,15 +147,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\include;$(ProjectDir)..\..\..\extern\eigen;$(ProjectDir)..\..\..\extern\pybind11\include;C:\Users\jonas\AppData\Local\Programs\Python\Python39\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\include;$(ProjectDir)..\..\..\extern\eigen;$(ProjectDir)..\..\..\extern\pybind11\include;C:\Users\jonas\AppData\Local\Programs\Python\Python311\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)state_reconstruction_cpp.cp311-win_amd64.pyd</OutputFile>
-      <AdditionalLibraryDirectories>C:\Users\jonas\AppData\Local\Programs\Python\Python39\libs;$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>python39.lib;cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\jonas\AppData\Local\Programs\Python\Python311\libs;$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>python311.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(OutDir)state_reconstruction_cpp.cp311-win_amd64.pyd" "..\..\..\state_reconstruction\"</Command>
@@ -172,7 +170,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\include;$(ProjectDir)..\..\..\extern\eigen;$(ProjectDir)..\..\..\extern\pybind11\include;C:\Users\jonas\AppData\Local\Programs\Python\Python39\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\include;$(ProjectDir)..\..\..\extern\eigen;$(ProjectDir)..\..\..\extern\pybind11\include;C:\Users\jonas\AppData\Local\Programs\Python\Python311\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -180,8 +178,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)state_reconstruction_cpp.cp311-win_amd64.pyd</OutputFile>
-      <AdditionalLibraryDirectories>C:\Users\jonas\AppData\Local\Programs\Python\Python39\libs;$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>python39.lib;cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\jonas\AppData\Local\Programs\Python\Python311\libs;$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>python311.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(OutDir)state_reconstruction_cpp.cp311-win_amd64.pyd" "..\..\..\state_reconstruction\"</Command>
@@ -196,7 +194,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;CUDA;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\include;$(ProjectDir)..\..\..\extern\eigen;$(ProjectDir)..\..\..\extern\pybind11\include;C:\Users\jonas\AppData\Local\Programs\Python\Python39\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\include;$(ProjectDir)..\..\..\extern\eigen;$(ProjectDir)..\..\..\extern\pybind11\include;C:\Users\jonas\AppData\Local\Programs\Python\Python311\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -204,8 +202,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OutputFile>$(OutDir)state_reconstruction_cpp.cp311-win_amd64.pyd</OutputFile>
-      <AdditionalLibraryDirectories>C:\Users\jonas\AppData\Local\Programs\Python\Python39\libs;$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>python39.lib;cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\jonas\AppData\Local\Programs\Python\Python311\libs;$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>python311.lib;cudart.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(OutDir)state_reconstruction_cpp.cp311-win_amd64.pyd" "..\..\..\state_reconstruction\"</Command>
@@ -239,7 +237,5 @@
     <ClInclude Include="..\..\include\trafo_gen.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.targets" />
-  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>
