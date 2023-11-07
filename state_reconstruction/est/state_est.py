@@ -6,7 +6,8 @@ Assigns emission states to projections.
 
 import sys
 import os
-os.add_dll_directory(os.path.dirname(__file__))
+if sys.platform == "win32":
+    os.add_dll_directory(os.path.dirname(__file__))
 sys.path.insert(0, os.path.dirname(__file__) + "/../")
 import state_reconstruction_cpp
 from datetime import datetime

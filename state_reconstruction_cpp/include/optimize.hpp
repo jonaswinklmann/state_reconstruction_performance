@@ -2,6 +2,7 @@
 #include <map>
 #include <vector>
 #include <fstream>
+#include <cfloat>
 
 struct EigenVectorXdCompare
 {
