@@ -31,7 +31,7 @@ cd ../../
 Windows:
 1. Open Visual Studio
 2. Open project property pages. Make sure configuration is set to "All Configurations". Adjust "C/C++ -> General -> Additional Include Directories", "Linker -> General -> Output File", "Linker -> General -> Additional Library Directories", "Linker -> Input -> Additional Dependencies", and "Build Events -> Post-Build Event -> Command Line" according to your Python installation".
-3. Set the Solution Configuration Selector to "Release" (CPU) or "GPU" depending on the target machine (GPU requires a CUDA capable device". If you use GPU, make sure to enable the corresponding Build Customization by right-clicking the project -" "Build Dependencies -> "Build Customizations..." and enabling CUDA. If CUDA is not present in the list, you might not have CUDA installed correctly. When running the CUDA installer, make sure to select Visual Studio integration.
+3. Set the Solution Configuration Selector to "Release" (CPU) or "GPU" depending on the target machine (GPU requires a CUDA capable device". If you use GPU, make sure to enable the corresponding Build Customization by right-clicking the project -> "Build Dependencies -> "Build Customizations..." and enabling CUDA. If CUDA is not present in the list, you might not have CUDA installed correctly. When running the CUDA installer, make sure to select Visual Studio integration.
 4. Build the project by right-clicking on the project and selecting "Build" or "Rebuild".
 5. Make sure the top-level "state_reconstruction" directory contains the resulting ".pyd" file.
 
