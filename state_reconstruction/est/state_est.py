@@ -20,6 +20,13 @@ import numpy as np
 import os
 import scipy.optimize
 import scipy.ndimage
+try:
+    from scipy.stats._distn_infrastructure import rv_continuous_frozen
+except ImportError:
+    # Backward compatibilty after scipy update (commit on 2022-03-17)
+    from scipy.stats._distn_infrastructure import (
+        rv_frozen as rv_continuous_frozen
+    )
 from uuid import uuid4 as uuid
 
 from libics.env.logging import get_logger
@@ -80,11 +87,54 @@ def get_emission_histogram(
     hist.set_var_quantity(0, name="projected emission")
     return hist
 
+def get_errors_for_threshold(peak_info_left, peak_info_right, n01_thr):
+    # Separate peak infos
+    pil = [_pi for _pi in peak_info_left.iter_peaks()]
+    pir = [_pi for _pi in peak_info_right.iter_peaks()]
+    # Get distributions
+    distrs_l = [_pi.distribution for _pi in pil]
+    distrs_r = [_pi.distribution for _pi in pir]
+    amp_l = np.array([_pi.distribution_amplitude for _pi in pil])
+    amp_r = np.array([_pi.distribution_amplitude for _pi in pir])
+    # Minimize overlap
+    try:
+        distrs_l = list(distrs_l)
+    except TypeError:
+        distrs_l = [distrs_l]
+    try:
+        distrs_r = list(distrs_r)
+    except TypeError:
+        distrs_r = [distrs_r]
+    for distr in misc.flatten_nested_list([distrs_l, distrs_r]):
+        if not isinstance(distr, rv_continuous_frozen):
+            raise ValueError("Distributions must be frozen")
+    if np.isscalar(amp_l):
+        amp_l = np.full(len(distrs_l), amp_l, dtype=float)
+    if np.isscalar(amp_r):
+        amp_r = np.full(len(distrs_r), amp_r, dtype=float)
+    rel_amp_l, rel_amp_r = amp_l / np.sum(amp_l), amp_r / np.sum(amp_r)
+    # Check if left/right distributions need to be swapped
+    medians_l = [distr.median() for distr in distrs_l]
+    medians_r = [distr.median() for distr in distrs_r]
+    median_l = np.sum(np.array(medians_l) * rel_amp_l)
+    median_r = np.sum(np.array(medians_r) * rel_amp_r)
+    if median_l > median_r:
+        distrs_l, distrs_r = distrs_r, distrs_l
+        median_l, median_r = median_r, median_l
+    xs = n01_thr
+    ql = np.sum([
+        p * distr.sf(xs) for p, distr in zip(rel_amp_l, distrs_l)
+    ])
+    qr = np.sum([
+        p * distr.cdf(xs) for p, distr in zip(rel_amp_r, distrs_r)
+    ])
+    return xs, ql, qr
+
 
 def analyze_emission_histogram(
     hist, strat=None, strat_size=20, strat_prominence=0.08,
     sfit_idx_center_ratio=0.1, sfit_filter=1.,
-    bgth_signal_err_num=0.1, n12_err_num=None
+    bgth_signal_err_num=0.1, n12_err_num=None, thresholds=None
 ):
     """
     Gets state discrimination thresholds from projected images.
@@ -297,7 +347,10 @@ def analyze_emission_histogram(
                     bgth_signal_err_num=bgth_signal_err_num
                 )
         # Perform state separation
-        n01_thr, n0_err, n1_err = n0_pi.separation_loc(n0_pi, n1_pi)
+        if thresholds is not None:
+            get_errors_for_threshold(n0_pi, n1_pi, thresholds[0])
+        else:
+            n01_thr, n0_err, n1_err = n0_pi.separation_loc(n0_pi, n1_pi)
         n0_center, n1_center = n0_pi.center, n1_pi.center
 
     # +++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -307,9 +360,12 @@ def analyze_emission_histogram(
         # Minimize false positive rate
         n0_pi = bg_pi
         n0_center = n0_pi.center
-        n01_thr = n0_pi.distribution.isf(
-            bgth_signal_err_num / n0_pi.distribution_amplitude
-        )
+        if thresholds is not None:
+            n01_thr = thresholds[0]
+        else:
+            n01_thr = n0_pi.distribution.isf(
+                bgth_signal_err_num / n0_pi.distribution_amplitude
+            )
         # Check for zero atoms
         _hist = hist[hist.cv_quantity_to_index(n01_thr, 0):]
         _pmf = np.array(_hist, dtype=float)
@@ -317,7 +373,10 @@ def analyze_emission_histogram(
         if np.isclose(_sum, 0) or len(_hist) < 2:
             LOGGER.debug("`analyze_emission_histogram`: no atoms found.")
             n1_center = 2 * n01_thr - n0_center
-            n12_thr = 3 * n01_thr - 2 * n0_center
+            if thresholds is not None:
+                n12_thr = thresholds[1]
+            else:
+                n12_thr = 3 * n01_thr - 2 * n0_center
             _mean = n1_center
             _std = hist.get_step(0)
             _amp = 0.1
@@ -328,7 +387,10 @@ def analyze_emission_histogram(
             _idx_median = np.argmin(abs(_cmf - 0.51))  # >0.5 to not round to 0
             n1_center = _hist.get_points(0)[_idx_median]
             # Estimate signal distribution from statistics
-            n12_thr = 2 * n1_center - n01_thr
+            if thresholds is not None:
+                n12_thr = thresholds[1]
+            else:
+                n12_thr = 2 * n1_center - n01_thr
             _idxs = [
                 hist.cv_quantity_to_index(n01_thr, 0),
                 hist.cv_quantity_to_index(n12_thr, 0) + 1
@@ -357,15 +419,18 @@ def analyze_emission_histogram(
     else:
         raise RuntimeError(f"Invalid `strat` {str(strat)}")
 
-    if n12_err_num is not None:
-        n12_err = n12_err_num / n1_pi.distribution_amplitude
+    if thresholds is None:
+        if n12_err_num is not None:
+            n12_err = n12_err_num / n1_pi.distribution_amplitude
+        else:
+            n12_err = n1_err
+        # Cutoff due to machine precision
+        if n12_err < 1e-50:
+            n12_thr = 2 * n1_center - n01_thr
+        else:
+            n12_thr = n1_pi.distribution.isf(n12_err)
     else:
-        n12_err = n1_err
-    # Cutoff due to machine precision
-    if n12_err < 1e-50:
-        n12_thr = 2 * n1_center - n01_thr
-    else:
-        n12_thr = n1_pi.distribution.isf(n12_err)
+        n12_thr = thresholds[1]
 
     # Package results
     n0_num = np.sum(hist.data[hist.get_points(0) < n01_thr])
@@ -465,14 +530,15 @@ class EmissionHistogramAnalysis:
     def get_emission_histogram(self, emissions):
         return get_emission_histogram(emissions, self.bin_range)
 
-    def analyze_emission_histogram(self, hist):
+    def analyze_emission_histogram(self, hist, thresholds=None):
         return analyze_emission_histogram(
             hist,
             strat_size=self.strat_size, strat_prominence=self.strat_prominence,
             sfit_idx_center_ratio=self.sfit_idx_center_ratio,
             sfit_filter=self.sfit_filter,
             n12_err_num=self.n12_err_num,
-            bgth_signal_err_num=self.bgth_signal_err_num
+            bgth_signal_err_num=self.bgth_signal_err_num,
+            thresholds=thresholds
         )
 
     def get_state_estimate(self, emissions, thresholds):
@@ -939,7 +1005,7 @@ class StateEstimator:
         )
         return new_trafo
 
-    def reconstruct(self, image, new_trafo=None):
+    def reconstruct(self, image, new_trafo=None, thresholds=None, analyse_histogram=False):
         """
         Reconstructs the state of each lattice site from an image.
 
@@ -972,19 +1038,25 @@ class StateEstimator:
         print("After applying projectors: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Perform histogram analysis for state discrimination
         eha = self.emission_histogram_analysis
-        histogram = eha.get_emission_histogram(local_emissions)
-        try:
-            histogram_data = eha.analyze_emission_histogram(histogram)
+        if (thresholds is None) or analyse_histogram:
+            histogram = eha.get_emission_histogram(local_emissions)
+            try:
+                histogram_data = eha.analyze_emission_histogram(histogram, thresholds)
+                state = eha.get_state_estimate(
+                    emissions, histogram_data["threshold"]
+                )
+                state_estimation_success = True
+            except (RuntimeError, IndexError, ValueError) as e:
+                self.LOGGER.error(
+                    f"Emission histogram analysis failed: {str(e)}"
+                )
+                histogram_data = None
+                state_estimation_success = False
+        elif thresholds is not None:
             state = eha.get_state_estimate(
-                emissions, histogram_data["threshold"]
+                emissions, thresholds
             )
             state_estimation_success = True
-        except (RuntimeError, IndexError, ValueError) as e:
-            self.LOGGER.error(
-                f"Emission histogram analysis failed: {str(e)}"
-            )
-            histogram_data = None
-            state_estimation_success = False
         t = datetime.now() - start_time
         print("After performing histogram analysis: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Package result
@@ -996,20 +1068,27 @@ class StateEstimator:
             trafo_phase_ref_image=self.phase_ref_image,
             trafo_phase_ref_site=self.phase_ref_site,
             emissions=emissions,
-            histogram=histogram,
             success=state_estimation_success
         )
         if state_estimation_success:
-            res.update(dict(
-                hist_strat=histogram_data["strat"],
-                hist_center=histogram_data["center"],
-                hist_threshold=histogram_data["threshold"],
-                hist_error_prob=histogram_data["error_prob"],
-                hist_error_num=histogram_data["error_num"],
-                hist_emission_num=histogram_data["emission_num"],
-                hist_peak_info=histogram_data["peak_info"],
-                state=state
-            ))
+            if (thresholds is not None) and (not analyse_histogram):
+                res.update(dict(
+                    hist_strat="thresholds",
+                    hist_threshold=thresholds,
+                    state=state
+                ))
+            else:
+                res.update(dict(
+                    histogram=histogram,
+                    hist_strat=histogram_data["strat"],
+                    hist_center=histogram_data["center"],
+                    hist_threshold=histogram_data["threshold"],
+                    hist_error_prob=histogram_data["error_prob"],
+                    hist_error_num=histogram_data["error_num"],
+                    hist_emission_num=histogram_data["emission_num"],
+                    hist_peak_info=histogram_data["peak_info"],
+                    state=state
+                ))
         else:
             res.update(dict(
                 state=np.zeros(self.sites_shape)
