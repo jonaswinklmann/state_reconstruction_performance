@@ -348,7 +348,7 @@ def analyze_emission_histogram(
                 )
         # Perform state separation
         if thresholds is not None:
-            get_errors_for_threshold(n0_pi, n1_pi, thresholds[0])
+            n01_thr, n0_err, n1_err = get_errors_for_threshold(n0_pi, n1_pi, thresholds[0])
         else:
             n01_thr, n0_err, n1_err = n0_pi.separation_loc(n0_pi, n1_pi)
         n0_center, n1_center = n0_pi.center, n1_pi.center
