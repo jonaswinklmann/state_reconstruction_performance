@@ -72,6 +72,8 @@ EmissionCalculatorCUDA::~EmissionCalculatorCUDA()
     free(this->yDistHost);
     free(this->projOffsetHost);
     free(this->emissionsHost);
+
+    delete this->projShape;
 }
 
 void EmissionCalculatorCUDA::initGPUEnvironment()
@@ -144,7 +146,12 @@ void EmissionCalculatorCUDA::loadProj(py::object& prjgen)
 
     const pybind11::ssize_t *shape = projs.shape();
     projs = projs.reshape(std::vector<int>({(int)(shape[0]), (int)(shape[1]), -1}));
-    this->projShape = projs.shape();
+    if (this->projShape)
+    {
+        delete this->projShape;
+    }
+    this->projShape = new pybind11::ssize_t[projs.ndim()];
+    memcpy(this->projShape, projs.shape(), projs.ndim() * sizeof(pybind11::ssize_t));
 
     if(this->projDevice)
     {

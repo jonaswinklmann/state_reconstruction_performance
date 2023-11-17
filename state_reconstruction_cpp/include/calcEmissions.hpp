@@ -9,7 +9,7 @@ class EmissionCalculatorCUDA
 {
 private:
     double *fullImageDevice, *projDevice;
-    const pybind11::ssize_t *projShape;
+    pybind11::ssize_t *projShape;
     int imageCols;
 
     double *emissions, *emissionsHost;
