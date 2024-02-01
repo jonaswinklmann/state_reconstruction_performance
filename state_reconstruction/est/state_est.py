@@ -1032,6 +1032,7 @@ class StateEstimator:
         
         local_emissions, trafo_phase, outlier_ratios, trafo_matrix, trafo_offset = self.sest_cpp.reconstruct(image, None, self.sites_shape, self.proj_shape, 
             self.psf_supersample, self.projector_generator, self.phase_ref_image, self.phase_ref_site, emissions.data, self.trafo_site_to_image)
+        trafo_phase = (trafo_phase + 0.5) % 1 - 0.5 # required to have properly wrapped phases if the initial phase guess is negative
         if new_trafo is None:
             new_trafo = AffineTrafo2d(np.array(trafo_matrix), np.array(trafo_offset))
         t = datetime.now() - start_time
