@@ -128,7 +128,11 @@ std::tuple<std::vector<double>, Eigen::VectorXd, Eigen::Array2d, Eigen::MatrixXd
     py::object &projector_generator, Eigen::Array2d phase_ref_image, Eigen::Array2d phase_ref_site,
     py::EigenDRef<Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> emissions, py::object &trafoSiteToImage)
 {
-    Eigen::Array2d outlier_ratios = this->imgPreproc->process_image(image);
+    Eigen::Array2d outlier_ratios = Eigen::Array2d::Zero();
+    if(this->imgPreproc.has_value())
+    {
+        outlier_ratios = this->imgPreproc->process_image(image);
+    }
     // Find trafo phase
     if(!new_trafo.has_value())
     {

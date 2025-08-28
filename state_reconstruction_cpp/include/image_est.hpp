@@ -43,7 +43,7 @@ public:
         }
     };
     ImagePreprocessor(std::optional<Eigen::Array2i> outlier_size = std::nullopt, double max_outlier_ratio = 5, double outlier_min_ref_val = 5,
-        int outlier_iterations = 2) : scale(Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>()), outlier_size(), 
+        int outlier_iterations = 2) : scale(std::nullopt), outlier_size(), 
         max_outlier_ratio(max_outlier_ratio), outlier_min_ref_val(outlier_min_ref_val), outlier_iterations(outlier_iterations)
     {
         if(!outlier_size.has_value())
@@ -57,7 +57,7 @@ public:
     };
     Eigen::Array2d process_image(py::EigenDRef<Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>> image) const;
 private:
-    const Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>& scale;
+    std::optional<Eigen::Array<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>> scale;
     Eigen::Array2i outlier_size;
     double max_outlier_ratio, outlier_min_ref_val;
     int outlier_iterations;

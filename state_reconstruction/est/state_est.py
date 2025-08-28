@@ -1024,7 +1024,6 @@ class StateEstimator:
             Reconstruction result.
         """
         # Preprocess image
-        start_time = datetime.now()
         image = np.array(image, dtype=float)
         if np.isfortran(image):
             image = np.ascontiguousarray(image)
@@ -1035,8 +1034,6 @@ class StateEstimator:
         trafo_phase = (trafo_phase + 0.5) % 1 - 0.5 # required to have properly wrapped phases if the initial phase guess is negative
         if new_trafo is None:
             new_trafo = AffineTrafo2d(np.array(trafo_matrix), np.array(trafo_offset))
-        t = datetime.now() - start_time
-        print("After applying projectors: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Perform histogram analysis for state discrimination
         eha = self.emission_histogram_analysis
         if (thresholds is None) or analyse_histogram:
@@ -1058,8 +1055,6 @@ class StateEstimator:
                 emissions, thresholds
             )
             state_estimation_success = True
-        t = datetime.now() - start_time
-        print("After performing histogram analysis: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         # Package result
         res = dict(
             state_estimator_id=self.id,
@@ -1095,8 +1090,6 @@ class StateEstimator:
                 state=np.zeros(self.sites_shape)
             ))
         res = ReconstructionResult(**res)
-        t = datetime.now() - start_time
-        print("After packaging results: " + t.seconds.__str__() + "s " + t.microseconds.__str__() + "us")
         return res
 
     def get_reconstructed_image(self, res, image_shape=(512, 512)):

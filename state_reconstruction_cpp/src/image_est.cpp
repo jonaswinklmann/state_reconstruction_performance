@@ -225,9 +225,9 @@ Eigen::Array2d ImagePreprocessor::process_image(py::EigenDRef<Eigen::Array<doubl
         Outlier ratio.*/
 
     // Prescale image
-    if(this->scale.size() == image.size())
+    if(this->scale.has_value() && this->scale->size() == image.size())
     {
-        prescale_image(image, this->scale);
+        prescale_image(image, *this->scale);
     }
     // Process outliers
     auto [iterations, outlier_ratios, outlier_size] = process_image_outliers_recursive(image, 
